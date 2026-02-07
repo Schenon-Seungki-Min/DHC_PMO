@@ -1,0 +1,21 @@
+{
+  "name": "dhc_pmo",
+  "version": "1.0.0",
+  "description": "Thread-centric project management tool for DHC",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "nodemon server/server.js"
+  },
+  "keywords": ["project-management", "thread", "pmo"],
+  "author": "DHC",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}
