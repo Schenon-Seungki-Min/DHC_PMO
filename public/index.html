@@ -201,12 +201,11 @@
             </div>
         </div>
 
-        <!-- View 3: Thread Detail (P5에서 구현 예정) -->
+        <!-- View 3: Thread Detail (동적 렌더링) -->
         <div id="view-detail" class="view hidden">
-            <div class="card-modern p-12 text-center">
-                <h2 class="text-2xl font-bold text-gray-900 mb-3">🚧 Thread Detail 뷰</h2>
-                <p class="text-gray-600 mb-2">P5 단계에서 구현 예정입니다.</p>
-                <p class="text-sm text-gray-500">Thread 상세 정보, Task 목록, 담당 히스토리</p>
+            <div class="text-center py-12">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                <p class="mt-4 text-gray-600">Thread 정보를 불러오는 중...</p>
             </div>
         </div>
 
@@ -225,6 +224,7 @@
     <script src="/js/components/threadBar.js"></script>
     <script src="/js/views/projectList.js"></script>
     <script src="/js/views/timeline.js"></script>
+    <script src="/js/views/threadDetail.js"></script>
     <script src="/js/app.js"></script>
 </body>
 </html>

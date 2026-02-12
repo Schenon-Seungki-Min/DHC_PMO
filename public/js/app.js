@@ -11,7 +11,8 @@ class App {
 
     this.views = {
       projects: new ProjectListView(this.apiClient),
-      timeline: new TimelineView(this.apiClient)
+      timeline: new TimelineView(this.apiClient),
+      detail: new ThreadDetailView(this.apiClient)
     };
   }
 
@@ -103,8 +104,14 @@ class App {
   async showThreadDetail(thread) {
     this.currentThread = thread;
 
-    // Thread Detail 뷰는 아직 구현 안 됨 (P5에서 구현 예정)
-    alert(`Thread Detail 뷰 구현 예정:\nThread: ${thread.title}\n\nP5 단계에서 구현됩니다.`);
+    // Detail 뷰로 전환
+    await this.showView('detail');
+
+    // Detail 뷰 렌더링 (thread, project 전달)
+    const mainContent = document.getElementById('view-detail');
+    if (mainContent && this.views.detail) {
+      await this.views.detail.render(mainContent, thread, this.currentProject);
+    }
   }
 }
 
