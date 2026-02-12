@@ -12,7 +12,8 @@ class App {
     this.views = {
       projects: new ProjectListView(this.apiClient),
       timeline: new TimelineView(this.apiClient),
-      detail: new ThreadDetailView(this.apiClient)
+      detail: new ThreadDetailView(this.apiClient),
+      people: new PeopleView(this.apiClient)
     };
   }
 
