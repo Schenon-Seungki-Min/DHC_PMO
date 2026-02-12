@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DHC_PMO - Thread-centric Project Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+        * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+            letter-spacing: -0.01em;
+        }
+
+        .header-glass {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .tab-active {
+            border-bottom: 3px solid #2563eb;
+            color: #2563eb;
+            font-weight: 600;
+        }
+
+        .card-modern {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .card-modern:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            border-color: rgba(37, 99, 235, 0.2);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+            transition: all 0.2s;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+            transition: all 0.2s;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+        }
+
+        .timeline-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+        }
+
+        .badge {
+            padding: 3px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+        }
+
+        .today-line {
+            position: absolute;
+            width: 3px;
+            background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
+            top: 0;
+            bottom: 0;
+            z-index: 10;
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+        }
+
+        .today-label {
+            position: absolute;
+            top: -24px;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            padding: 4px 8px;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+        }
+
+        .thread-bar {
+            height: 44px;
+            border-radius: 10px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 2px solid rgba(0, 0, 0, 0.06);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+        }
+
+        .thread-bar:hover {
+            transform: translateY(-2px) scale(1.01);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+            border-color: rgba(37, 99, 235, 0.3);
+        }
+
+        .member-segment {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.01em;
+            color: white;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        .remaining-segment {
+            height: 100%;
+            background: linear-gradient(90deg, #f3f4f6 0%, #e5e7eb 100%);
+            flex-grow: 1;
+        }
+
+        .color-coree { background: linear-gradient(135deg, #374151 0%, #1f2937 100%); }
+        .color-intern-a { background: linear-gradient(135deg, #3B82F6 0%, #2563eb 100%); }
+        .color-intern-b { background: linear-gradient(135deg, #8B5CF6 0%, #7c3aed 100%); }
+        .color-kim { background: linear-gradient(135deg, #10B981 0%, #059669 100%); }
+        .dot-coree { background: #374151; }
+        .dot-intern-a { background: #3B82F6; }
+        .dot-intern-b { background: #8B5CF6; }
+        .dot-kim { background: #10B981; }
+
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .thread-bar { height: 36px; }
+            .member-segment { font-size: 10px; }
+            .badge { font-size: 9px; padding: 2px 6px; }
+            h1 { font-size: 18px !important; }
+            h2 { font-size: 16px !important; }
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <header class="header-glass sticky top-0 z-50 px-4 md:px-6 py-4 border-b border-gray-200">
+        <div class="flex items-center justify-between max-w-7xl mx-auto">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-lg">
+                    <span class="text-white font-black text-lg">D</span>
+                </div>
+                <h1 class="text-xl md:text-2xl font-black text-gray-900 tracking-tight">DHC_PMO</h1>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="hidden sm:flex items-center gap-2 text-sm font-medium text-gray-600">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center text-white text-xs font-bold shadow-md">C</div>
+                    <span>코리</span>
+                </span>
+                <span class="hidden sm:inline text-xs px-3 py-1 bg-blue-100 text-blue-700 rounded-full font-semibold">PM</span>
+            </div>
+        </div>
+        <nav class="flex gap-4 md:gap-8 mt-4 max-w-7xl mx-auto overflow-x-auto">
+            <button id="tab-projects" class="pb-3 px-1 text-sm font-medium tab-active whitespace-nowrap">Projects</button>
+            <button id="tab-timeline" class="pb-3 px-1 text-sm font-medium text-gray-500 whitespace-nowrap">Timeline</button>
+            <button id="tab-detail" class="pb-3 px-1 text-sm font-medium text-gray-500 whitespace-nowrap">Thread Detail</button>
+            <button id="tab-people" class="pb-3 px-1 text-sm font-medium text-gray-500 whitespace-nowrap">People</button>
+        </nav>
+    </header>
+
+    <main class="p-4 md:p-6 max-w-7xl mx-auto">
+        <!-- View 1: Project List (동적 렌더링) -->
+        <div id="view-projects" class="view">
+            <div class="text-center py-12">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                <p class="mt-4 text-gray-600">프로젝트를 불러오는 중...</p>
+            </div>
+        </div>
+
+        <!-- View 2: Thread Timeline (P3에서 구현 예정) -->
+        <div id="view-timeline" class="view hidden">
+            <div class="card-modern p-12 text-center">
+                <h2 class="text-2xl font-bold text-gray-900 mb-3">🚧 Timeline 뷰</h2>
+                <p class="text-gray-600 mb-2">P3 단계에서 구현 예정입니다.</p>
+                <p class="text-sm text-gray-500">주간 타임라인과 Thread 바 시각화</p>
+            </div>
+        </div>
+
+        <!-- View 3: Thread Detail (P5에서 구현 예정) -->
+        <div id="view-detail" class="view hidden">
+            <div class="card-modern p-12 text-center">
+                <h2 class="text-2xl font-bold text-gray-900 mb-3">🚧 Thread Detail 뷰</h2>
+                <p class="text-gray-600 mb-2">P5 단계에서 구현 예정입니다.</p>
+                <p class="text-sm text-gray-500">Thread 상세 정보, Task 목록, 담당 히스토리</p>
+            </div>
+        </div>
+
+        <!-- View 4: People View (P7에서 구현 예정) -->
+        <div id="view-people" class="view hidden">
+            <div class="card-modern p-12 text-center">
+                <h2 class="text-2xl font-bold text-gray-900 mb-3">🚧 People 뷰</h2>
+                <p class="text-gray-600 mb-2">P7 단계에서 구현 예정입니다.</p>
+                <p class="text-sm text-gray-500">팀원별 Thread 현황, D-day 시각화</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="/js/apiClient.js"></script>
+    <script src="/js/views/projectList.js"></script>
+    <script src="/js/app.js"></script>
+</body>
+</html>
