@@ -391,6 +391,83 @@ app.get('/api/threads/:id/stakeholders', async (req, res) => {
   }
 });
 
+// ========== THREAD TEMPLATES API ==========
+
+app.get('/api/templates', async (req, res) => {
+  try {
+    const templates = await dataService.getAllTemplates();
+    res.json(templates);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/templates/:id', async (req, res) => {
+  try {
+    const template = await dataService.getTemplateById(req.params.id);
+    if (!template) {
+      return res.status(404).json({ error: 'Template not found' });
+    }
+    res.json(template);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/templates', async (req, res) => {
+  try {
+    const newTemplate = await dataService.createTemplate(req.body);
+    res.status(201).json(newTemplate);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/templates/:id', async (req, res) => {
+  try {
+    const updated = await dataService.updateTemplate(req.params.id, req.body);
+    if (!updated) {
+      return res.status(404).json({ error: 'Template not found' });
+    }
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete('/api/templates/:id', async (req, res) => {
+  try {
+    const deleted = await dataService.deleteTemplate(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ error: 'Template not found' });
+    }
+    res.json({ message: 'Template deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Template Tasks
+app.get('/api/templates/:id/tasks', async (req, res) => {
+  try {
+    const tasks = await dataService.getTemplateTasks(req.params.id);
+    res.json(tasks);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create Thread from Template
+app.post('/api/threads/from-template', async (req, res) => {
+  try {
+    const { template_id, ...threadData } = req.body;
+    const result = await dataService.createThreadFromTemplate(template_id, threadData);
+    res.status(201).json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 DHC_PMO server running on http://localhost:${PORT}`);

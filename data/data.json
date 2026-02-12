@@ -294,5 +294,122 @@
       "stakeholder_id": "stake-002",
       "role_type": "approver"
     }
+  ],
+  "thread_templates": [
+    {
+      "id": "template-001",
+      "name": "웨비나 진행",
+      "thread_type": "execution",
+      "description": "웨비나 준비 및 진행 표준 프로세스",
+      "created_at": "2025-01-01T00:00:00Z"
+    },
+    {
+      "id": "template-002",
+      "name": "협력사 소통",
+      "thread_type": "negotiation",
+      "description": "외부 협력사와의 계약 및 소통 프로세스",
+      "created_at": "2025-01-01T00:00:00Z"
+    }
+  ],
+  "template_tasks": [
+    {
+      "id": "tt-001",
+      "template_id": "template-001",
+      "title": "웨비나 주제 선정 및 승인",
+      "day_offset": -30,
+      "priority": "high",
+      "order": 1,
+      "notes": "마감 30일 전까지 주제 확정"
+    },
+    {
+      "id": "tt-002",
+      "template_id": "template-001",
+      "title": "발표자료 초안 작성",
+      "day_offset": -14,
+      "priority": "high",
+      "order": 2,
+      "notes": "마감 14일 전"
+    },
+    {
+      "id": "tt-003",
+      "template_id": "template-001",
+      "title": "발표자료 리뷰 및 수정",
+      "day_offset": -7,
+      "priority": "high",
+      "order": 3,
+      "notes": "마감 7일 전"
+    },
+    {
+      "id": "tt-004",
+      "template_id": "template-001",
+      "title": "웨비나 홍보",
+      "day_offset": -5,
+      "priority": "medium",
+      "order": 4,
+      "notes": "SNS, 이메일 홍보"
+    },
+    {
+      "id": "tt-005",
+      "template_id": "template-001",
+      "title": "리허설",
+      "day_offset": -1,
+      "priority": "high",
+      "order": 5,
+      "notes": "전날 리허설 진행"
+    },
+    {
+      "id": "tt-006",
+      "template_id": "template-001",
+      "title": "웨비나 진행",
+      "day_offset": 0,
+      "priority": "high",
+      "order": 6,
+      "notes": "당일 진행"
+    },
+    {
+      "id": "tt-007",
+      "template_id": "template-002",
+      "title": "협력사 선정 및 1차 컨택",
+      "day_offset": -21,
+      "priority": "high",
+      "order": 1,
+      "notes": "마감 3주 전"
+    },
+    {
+      "id": "tt-008",
+      "template_id": "template-002",
+      "title": "미팅 및 제안서 검토",
+      "day_offset": -14,
+      "priority": "high",
+      "order": 2,
+      "notes": "마감 2주 전"
+    },
+    {
+      "id": "tt-009",
+      "template_id": "template-002",
+      "title": "계약서 초안 작성",
+      "day_offset": -7,
+      "priority": "high",
+      "order": 3,
+      "notes": "마감 1주 전"
+    },
+    {
+      "id": "tt-010",
+      "template_id": "template-002",
+      "title": "법무 검토",
+      "day_offset": -3,
+      "priority": "medium",
+      "order": 4,
+      "notes": "마감 3일 전"
+    },
+    {
+      "id": "tt-011",
+      "template_id": "template-002",
+      "title": "최종 계약 체결",
+      "day_offset": 0,
+      "priority": "high",
+      "order": 5,
+      "notes": "마감일"
+    }
   ]
 }

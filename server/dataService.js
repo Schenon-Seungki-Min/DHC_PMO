@@ -393,6 +393,150 @@ class DataService {
       };
     });
   }
+
+  // ========== THREAD TEMPLATES ==========
+
+  async getAllTemplates() {
+    await this.ensureData();
+    return this.data.thread_templates;
+  }
+
+  async getTemplateById(id) {
+    await this.ensureData();
+    return this.data.thread_templates.find(t => t.id === id);
+  }
+
+  async createTemplate(templateData) {
+    await this.ensureData();
+    const newTemplate = {
+      ...templateData,
+      created_at: new Date().toISOString()
+    };
+    this.data.thread_templates.push(newTemplate);
+    await this.saveData();
+    return newTemplate;
+  }
+
+  async updateTemplate(id, updates) {
+    await this.ensureData();
+    const index = this.data.thread_templates.findIndex(t => t.id === id);
+    if (index === -1) return null;
+
+    this.data.thread_templates[index] = {
+      ...this.data.thread_templates[index],
+      ...updates
+    };
+    await this.saveData();
+    return this.data.thread_templates[index];
+  }
+
+  async deleteTemplate(id) {
+    await this.ensureData();
+    const index = this.data.thread_templates.findIndex(t => t.id === id);
+    if (index === -1) return false;
+
+    this.data.thread_templates.splice(index, 1);
+    await this.saveData();
+    return true;
+  }
+
+  // ========== TEMPLATE TASKS ==========
+
+  async getTemplateTasks(templateId) {
+    await this.ensureData();
+    return this.data.template_tasks
+      .filter(t => t.template_id === templateId)
+      .sort((a, b) => a.order - b.order);
+  }
+
+  async createTemplateTask(taskData) {
+    await this.ensureData();
+    const newTask = {
+      ...taskData
+    };
+    this.data.template_tasks.push(newTask);
+    await this.saveData();
+    return newTask;
+  }
+
+  async updateTemplateTask(id, updates) {
+    await this.ensureData();
+    const index = this.data.template_tasks.findIndex(t => t.id === id);
+    if (index === -1) return null;
+
+    this.data.template_tasks[index] = {
+      ...this.data.template_tasks[index],
+      ...updates
+    };
+    await this.saveData();
+    return this.data.template_tasks[index];
+  }
+
+  async deleteTemplateTask(id) {
+    await this.ensureData();
+    const index = this.data.template_tasks.findIndex(t => t.id === id);
+    if (index === -1) return false;
+
+    this.data.template_tasks.splice(index, 1);
+    await this.saveData();
+    return true;
+  }
+
+  // ========== CREATE THREAD FROM TEMPLATE ==========
+
+  async createThreadFromTemplate(templateId, threadData) {
+    await this.ensureData();
+
+    // 1. Get template
+    const template = await this.getTemplateById(templateId);
+    if (!template) {
+      throw new Error('Template not found');
+    }
+
+    // 2. Create thread
+    const newThread = {
+      ...threadData,
+      thread_type: template.thread_type,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    this.data.threads.push(newThread);
+
+    // 3. Get template tasks
+    const templateTasks = await this.getTemplateTasks(templateId);
+
+    // 4. Create tasks from template
+    const dueDate = new Date(threadData.due_date);
+    const createdTasks = [];
+
+    for (const templateTask of templateTasks) {
+      const taskDueDate = new Date(dueDate);
+      taskDueDate.setDate(taskDueDate.getDate() + templateTask.day_offset);
+
+      const newTask = {
+        id: `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        thread_id: newThread.id,
+        title: templateTask.title,
+        assignee_id: null,
+        start_date: null,
+        due_date: taskDueDate.toISOString().split('T')[0],
+        status: 'todo',
+        priority: templateTask.priority,
+        notes: templateTask.notes,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      this.data.tasks.push(newTask);
+      createdTasks.push(newTask);
+    }
+
+    await this.saveData();
+
+    return {
+      thread: newThread,
+      tasks: createdTasks
+    };
+  }
 }
 
 // Singleton instance
