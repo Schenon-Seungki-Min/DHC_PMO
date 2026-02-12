@@ -10,7 +10,8 @@ class App {
     this.currentThread = null;
 
     this.views = {
-      projects: new ProjectListView(this.apiClient)
+      projects: new ProjectListView(this.apiClient),
+      timeline: new TimelineView(this.apiClient)
     };
   }
 
@@ -86,8 +87,14 @@ class App {
   async showTimeline(project) {
     this.currentProject = project;
 
-    // Timeline 뷰는 아직 구현 안 됨 (P3에서 구현 예정)
-    alert(`Timeline 뷰 구현 예정:\n프로젝트: ${project.name}\n\nP3 단계에서 구현됩니다.`);
+    // Timeline 뷰로 전환
+    await this.showView('timeline');
+
+    // Timeline 뷰 렌더링 (프로젝트 전달)
+    const mainContent = document.getElementById('view-timeline');
+    if (mainContent && this.views.timeline) {
+      await this.views.timeline.render(mainContent, project);
+    }
   }
 
   /**
