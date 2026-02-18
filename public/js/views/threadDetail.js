@@ -39,7 +39,7 @@ class ThreadDetailView {
       container.innerHTML = `
         <div class="card-modern p-6 text-center">
           <p class="text-red-600 font-semibold">Thread 정보를 불러올 수 없습니다.</p>
-          <p class="text-sm text-gray-600 mt-2">${error.message}</p>
+          <p class="text-sm text-gray-600 mt-2">${Helpers.escapeHtml(error.message)}</p>
         </div>
       `;
     }
@@ -414,27 +414,6 @@ class ThreadDetailView {
       'on_hold': '<span class="badge bg-yellow-100 text-yellow-700">보류</span>'
     };
     return statusMap[status] || '';
-  }
-
-  /**
-   * D-day 뱃지 렌더링
-   */
-  renderDDayBadge(dDay) {
-    let badgeClass = 'bg-gray-100 text-gray-700';
-    let text = `D-${dDay}`;
-
-    if (dDay < 0) {
-      badgeClass = 'bg-red-100 text-red-700';
-      text = `D+${Math.abs(dDay)}`;
-    } else if (dDay <= 1) {
-      badgeClass = 'bg-red-100 text-red-700';
-    } else if (dDay <= 3) {
-      badgeClass = 'bg-orange-100 text-orange-800';
-    } else if (dDay <= 7) {
-      badgeClass = 'bg-yellow-100 text-yellow-800';
-    }
-
-    return `<span class="badge ${badgeClass}">${text}</span>`;
   }
 
   /**

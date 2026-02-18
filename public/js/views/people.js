@@ -33,7 +33,7 @@ class PeopleView {
       container.innerHTML = `
         <div class="card-modern p-6 text-center">
           <p class="text-red-600 font-semibold">팀원 정보를 불러올 수 없습니다.</p>
-          <p class="text-sm text-gray-600 mt-2">${error.message}</p>
+          <p class="text-sm text-gray-600 mt-2">${Helpers.escapeHtml(error.message)}</p>
         </div>
       `;
     }
@@ -308,31 +308,6 @@ class PeopleView {
         </div>
       `;
     }
-  }
-
-  /**
-   * D-day 뱃지
-   */
-  renderDDayBadge(dDay) {
-    let badgeClass = 'bg-gray-100 text-gray-700';
-    let text = `D-${dDay}`;
-    let icon = '';
-
-    if (dDay < 0) {
-      badgeClass = 'bg-red-100 text-red-700';
-      text = `D+${Math.abs(dDay)}`;
-      icon = ' 🔥';
-    } else if (dDay <= 1) {
-      badgeClass = 'bg-red-100 text-red-700';
-      icon = ' 🔥';
-    } else if (dDay <= 3) {
-      badgeClass = 'bg-orange-100 text-orange-800';
-      icon = ' ⚠️';
-    } else if (dDay <= 7) {
-      badgeClass = 'bg-yellow-100 text-yellow-800';
-    }
-
-    return `<span class="badge ${badgeClass}">${text}${icon}</span>`;
   }
 
   /**

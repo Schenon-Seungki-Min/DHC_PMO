@@ -143,6 +143,12 @@ app.delete('/api/threads/:id', async (req, res) => {
 
 // Thread Assignment
 app.post('/api/threads/:id/assign', async (req, res) => {
+  if (!req.body.member_id) {
+    return res.status(400).json({ error: 'member_id is required' });
+  }
+  if (!req.body.role) {
+    return res.status(400).json({ error: 'role is required' });
+  }
   try {
     const { member_id, role, note } = req.body;
     const assignment = await dataService.assignThread(
@@ -158,6 +164,9 @@ app.post('/api/threads/:id/assign', async (req, res) => {
 });
 
 app.post('/api/threads/:id/release', async (req, res) => {
+  if (!req.body.assignment_id) {
+    return res.status(400).json({ error: 'assignment_id is required' });
+  }
   try {
     const { assignment_id, note } = req.body;
     const released = await dataService.releaseThread(assignment_id, note);
@@ -341,6 +350,9 @@ app.get('/api/stakeholders/:id', async (req, res) => {
 });
 
 app.post('/api/stakeholders', async (req, res) => {
+  if (!req.body.name?.trim()) {
+    return res.status(400).json({ error: 'name is required' });
+  }
   try {
     const newStakeholder = await dataService.createStakeholder(req.body);
     res.status(201).json(newStakeholder);
@@ -375,6 +387,9 @@ app.delete('/api/stakeholders/:id', async (req, res) => {
 
 // Thread Stakeholders
 app.post('/api/threads/:id/stakeholders', async (req, res) => {
+  if (!req.body.stakeholder_id) {
+    return res.status(400).json({ error: 'stakeholder_id is required' });
+  }
   try {
     const { stakeholder_id, role_type } = req.body;
     const mapping = await dataService.addThreadStakeholder(
@@ -436,6 +451,9 @@ app.get('/api/templates/:id', async (req, res) => {
 });
 
 app.post('/api/templates', async (req, res) => {
+  if (!req.body.name?.trim()) {
+    return res.status(400).json({ error: 'name is required' });
+  }
   try {
     const newTemplate = await dataService.createTemplate(req.body);
     res.status(201).json(newTemplate);

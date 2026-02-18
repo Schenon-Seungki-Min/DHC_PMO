@@ -40,7 +40,7 @@ class TimelineView {
       container.innerHTML = `
         <div class="card-modern p-6 text-center">
           <p class="text-red-600 font-semibold">타임라인을 불러올 수 없습니다.</p>
-          <p class="text-sm text-gray-600 mt-2">${error.message}</p>
+          <p class="text-sm text-gray-600 mt-2">${Helpers.escapeHtml(error.message)}</p>
         </div>
       `;
     }
