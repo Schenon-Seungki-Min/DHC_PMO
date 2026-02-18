@@ -168,7 +168,7 @@ class PeopleView {
 
     // Thread별 정보 (D-day, role)
     const threadInfos = activeThreads.map(thread => {
-      const dDay = this.calculateDDay(thread.due_date);
+      const dDay = Helpers.calculateDDay(thread.due_date);
       const assignment = (this.assignments[thread.id] || []).find(a => a.member_id === member.id);
       const role = assignment?.role || 'support';
 
@@ -207,8 +207,8 @@ class PeopleView {
    * 멤버 카드 렌더링
    */
   renderMemberCard(member, info) {
-    const colorClass = this.getMemberColorClass(member.role);
-    const dotClass = this.getMemberDotClass(member.role);
+    const colorClass = Helpers.getMemberColorClass(member.role);
+    const dotClass = Helpers.getMemberDotClass(member.role);
 
     return `
       <div class="card-modern p-5 md:p-6">
@@ -219,8 +219,8 @@ class PeopleView {
               ${member.name.charAt(0)}
             </div>
             <div>
-              <div class="font-bold text-gray-900 text-lg">${this.escapeHtml(member.name)}</div>
-              <div class="text-sm text-gray-600 font-medium">${this.getRoleLabel(member.role)}</div>
+              <div class="font-bold text-gray-900 text-lg">${Helpers.escapeHtml(member.name)}</div>
+              <div class="text-sm text-gray-600 font-medium">${Helpers.translateRole(member.role)}</div>
             </div>
           </div>
           <div class="flex gap-6 text-sm">
@@ -271,10 +271,10 @@ class PeopleView {
       <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-3 ${bgClass} rounded-xl border-2 ${borderClass}">
         <div class="flex items-center gap-2 flex-wrap">
           <span class="w-3 h-3 rounded-full ${dotClass} shadow-sm"></span>
-          <span class="font-semibold text-gray-900">${this.escapeHtml(thread.title)}</span>
+          <span class="font-semibold text-gray-900">${Helpers.escapeHtml(thread.title)}</span>
           <span class="badge ${role === 'lead' ? 'bg-blue-100 text-blue-800' : 'bg-gray-200 text-gray-700'}">${role}</span>
         </div>
-        ${this.renderDDayBadge(dDay)}
+        ${Helpers.renderDDayBadge(dDay)}
       </div>
     `;
   }
@@ -286,13 +286,13 @@ class PeopleView {
     if (info.status === 'urgent') {
       return `
         <div class="text-sm font-semibold text-red-700 bg-gradient-to-r from-red-50 to-red-100 p-3 rounded-xl border border-red-200">
-          🔥 ${this.escapeHtml(info.urgentThread.thread.title)} D-${info.urgentThread.dDay} 긴급 - 오늘 중 완료 필요
+          🔥 ${Helpers.escapeHtml(info.urgentThread.thread.title)} D-${info.urgentThread.dDay} 긴급 - 오늘 중 완료 필요
         </div>
       `;
     } else if (info.status === 'warning') {
       return `
         <div class="text-sm font-semibold text-orange-700 bg-gradient-to-r from-orange-50 to-orange-100 p-3 rounded-xl border border-orange-200">
-          ⚠️ ${this.escapeHtml(info.urgentThread.thread.title)} D-${info.urgentThread.dDay} 촉박 - 리밸런싱 검토 필요
+          ⚠️ ${Helpers.escapeHtml(info.urgentThread.thread.title)} D-${info.urgentThread.dDay} 촉박 - 리밸런싱 검토 필요
         </div>
       `;
     } else if (info.threadCount === 0) {
@@ -376,61 +376,4 @@ class PeopleView {
     }
   }
 
-  /**
-   * D-day 계산
-   */
-  calculateDDay(dueDate) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const due = new Date(dueDate);
-    due.setHours(0, 0, 0, 0);
-
-    return Math.ceil((due - today) / (1000 * 60 * 60 * 24));
-  }
-
-  /**
-   * 역할 라벨
-   */
-  getRoleLabel(role) {
-    const roleMap = {
-      'pm': 'PM',
-      'intern': '인턴',
-      'member': '팀원'
-    };
-    return roleMap[role] || role;
-  }
-
-  /**
-   * 멤버 색상 클래스
-   */
-  getMemberColorClass(role) {
-    const colorMap = {
-      'pm': 'color-coree',
-      'intern': 'color-intern-a',
-      'member': 'color-kim'
-    };
-    return colorMap[role] || 'color-intern-b';
-  }
-
-  /**
-   * 멤버 dot 클래스
-   */
-  getMemberDotClass(role) {
-    const dotMap = {
-      'pm': 'dot-coree',
-      'intern': 'dot-intern-a',
-      'member': 'dot-kim'
-    };
-    return dotMap[role] || 'dot-intern-b';
-  }
-
-  /**
-   * HTML 이스케이프
-   */
-  escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
 }

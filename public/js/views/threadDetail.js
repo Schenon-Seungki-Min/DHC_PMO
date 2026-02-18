@@ -71,16 +71,16 @@ class ThreadDetailView {
    * UI 렌더링
    */
   renderUI() {
-    const dDay = this.calculateDDay(this.currentThread.due_date);
+    const dDay = Helpers.calculateDDay(this.currentThread.due_date);
 
     this.container.innerHTML = `
       <!-- Breadcrumb -->
       <div class="flex items-center gap-2 mb-4 text-sm text-gray-500 overflow-x-auto">
         <span class="cursor-pointer hover:text-blue-600 transition-colors whitespace-nowrap" id="breadcrumb-projects">Projects</span>
         <span>/</span>
-        <span class="cursor-pointer hover:text-blue-600 transition-colors whitespace-nowrap" id="breadcrumb-timeline">${this.escapeHtml(this.currentProject.name)}</span>
+        <span class="cursor-pointer hover:text-blue-600 transition-colors whitespace-nowrap" id="breadcrumb-timeline">${Helpers.escapeHtml(this.currentProject.name)}</span>
         <span>/</span>
-        <span class="text-gray-900 font-semibold whitespace-nowrap">${this.escapeHtml(this.currentThread.title)}</span>
+        <span class="text-gray-900 font-semibold whitespace-nowrap">${Helpers.escapeHtml(this.currentThread.title)}</span>
       </div>
 
       <!-- Thread Detail Card -->
@@ -90,15 +90,15 @@ class ThreadDetailView {
           <div class="flex flex-col md:flex-row justify-between items-start gap-4">
             <div class="flex-1">
               <div class="flex flex-wrap items-center gap-2 mb-3">
-                <h2 class="text-xl md:text-2xl font-black text-gray-900">${this.escapeHtml(this.currentThread.title)}</h2>
+                <h2 class="text-xl md:text-2xl font-black text-gray-900">${Helpers.escapeHtml(this.currentThread.title)}</h2>
                 ${this.renderThreadTypeBadge(this.currentThread.thread_type)}
                 ${this.renderStatusBadge(this.currentThread.status)}
               </div>
-              <p class="text-gray-600 font-medium">${this.escapeHtml(this.currentThread.objective)}</p>
+              <p class="text-gray-600 font-medium">${Helpers.escapeHtml(this.currentThread.objective)}</p>
             </div>
             <div class="card-modern p-4 text-center bg-gradient-to-br from-gray-50 to-white border-2">
               <div class="text-3xl font-black text-gray-900">D-${dDay}</div>
-              <div class="text-sm text-gray-600 font-semibold mt-1">마감: ${this.formatDate(this.currentThread.due_date)}</div>
+              <div class="text-sm text-gray-600 font-semibold mt-1">마감: ${Helpers.formatDate(this.currentThread.due_date)}</div>
             </div>
           </div>
         </div>
@@ -178,16 +178,16 @@ class ThreadDetailView {
       return `
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-xl border-2 ${borderClass}">
           <div class="flex items-center gap-3 mb-2 sm:mb-0">
-            <div class="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-md ${this.getMemberColorClass(member.role)}">
+            <div class="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-md ${Helpers.getMemberColorClass(member.role)}">
               ${member.name.charAt(0)}
             </div>
             <div>
-              <span class="font-bold text-gray-900 block">${this.escapeHtml(member.name)}</span>
+              <span class="font-bold text-gray-900 block">${Helpers.escapeHtml(member.name)}</span>
               <span class="badge ${isLead ? 'bg-blue-100 text-blue-800' : 'bg-gray-200 text-gray-700'} mt-1 inline-block">${assignment.role}</span>
             </div>
           </div>
           <div class="flex items-center gap-2">
-            <span class="text-sm text-gray-600 font-semibold">${this.formatDate(assignment.grabbed_at)}~</span>
+            <span class="text-sm text-gray-600 font-semibold">${Helpers.formatDate(assignment.grabbed_at)}~</span>
             <button class="btn-release text-xs text-red-600 hover:text-red-700 font-semibold" data-assignment-id="${assignment.id}">제거</button>
           </div>
         </div>
@@ -212,7 +212,7 @@ class ThreadDetailView {
       return `
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border-2 rounded-xl hover:border-${roleColor}-200 transition-colors">
           <div>
-            <div class="font-bold text-gray-900">${this.escapeHtml(stakeholder.name)}</div>
+            <div class="font-bold text-gray-900">${Helpers.escapeHtml(stakeholder.name)}</div>
             <div class="text-sm text-gray-600 mt-0.5">${stakeholder.type === 'internal' ? '내부' : '외부'}</div>
           </div>
           <div class="flex items-center gap-2 mt-2 sm:mt-0">
@@ -251,7 +251,7 @@ class ThreadDetailView {
   renderHistoryItem(item, index) {
     const member = this.members.find(m => m.id === item.member_id);
     const memberName = member ? member.name : '알 수 없음';
-    const dotClass = member ? this.getMemberDotClass(member.role) : 'bg-gray-400';
+    const dotClass = member ? Helpers.getMemberDotClass(member.role) : 'bg-gray-400';
 
     let title = '';
     let description = '';
@@ -276,9 +276,9 @@ class ThreadDetailView {
         <div class="flex-1 p-4 rounded-xl border-2 ${borderClass} ${bgClass}">
           <div class="flex flex-col sm:flex-row justify-between gap-2">
             <span class="font-bold text-gray-900">${title}</span>
-            <span class="text-sm text-gray-600 font-semibold">${this.formatDate(item.timestamp)}</span>
+            <span class="text-sm text-gray-600 font-semibold">${Helpers.formatDate(item.timestamp)}</span>
           </div>
-          <div class="text-sm text-gray-600 mt-1">${this.escapeHtml(description)}</div>
+          <div class="text-sm text-gray-600 mt-1">${Helpers.escapeHtml(description)}</div>
         </div>
       </div>
     `;
@@ -323,11 +323,11 @@ class ThreadDetailView {
         <div class="flex items-start gap-3">
           <span class="text-green-600 text-xl mt-0.5">✓</span>
           <div class="flex-1">
-            <div class="line-through text-gray-500 font-medium">${this.escapeHtml(task.title)}</div>
+            <div class="line-through text-gray-500 font-medium">${Helpers.escapeHtml(task.title)}</div>
             ${assignee ? `
               <div class="flex items-center gap-2 text-xs text-gray-500 mt-1">
-                <span class="w-2.5 h-2.5 rounded-full ${this.getMemberDotClass(assignee.role)} shadow-sm"></span>
-                <span class="font-medium">${this.escapeHtml(assignee.name)} · ${this.formatDate(task.completed_at)} 완료</span>
+                <span class="w-2.5 h-2.5 rounded-full ${Helpers.getMemberDotClass(assignee.role)} shadow-sm"></span>
+                <span class="font-medium">${Helpers.escapeHtml(assignee.name)} · ${Helpers.formatDate(task.completed_at)} 완료</span>
               </div>
             ` : ''}
           </div>
@@ -341,7 +341,7 @@ class ThreadDetailView {
    */
   renderInProgressTask(task) {
     const assignee = this.members.find(m => m.id === task.assigned_to);
-    const dDay = this.calculateDDay(task.due_date);
+    const dDay = Helpers.calculateDDay(task.due_date);
 
     return `
       <div class="p-4 border-2 border-blue-400 rounded-xl bg-gradient-to-r from-blue-50 to-transparent shadow-sm task-item" data-task-id="${task.id}">
@@ -349,17 +349,17 @@ class ThreadDetailView {
           <div class="flex items-start gap-3 flex-1">
             <span class="text-blue-600 text-xl font-bold mt-0.5">→</span>
             <div class="flex-1">
-              <div class="font-bold text-gray-900">${this.escapeHtml(task.title)}</div>
+              <div class="font-bold text-gray-900">${Helpers.escapeHtml(task.title)}</div>
               ${assignee ? `
                 <div class="flex items-center gap-2 text-xs text-gray-600 mt-1">
-                  <span class="w-2.5 h-2.5 rounded-full ${this.getMemberDotClass(assignee.role)} shadow-sm"></span>
-                  <span class="font-semibold">${this.escapeHtml(assignee.name)} · 진행중</span>
+                  <span class="w-2.5 h-2.5 rounded-full ${Helpers.getMemberDotClass(assignee.role)} shadow-sm"></span>
+                  <span class="font-semibold">${Helpers.escapeHtml(assignee.name)} · 진행중</span>
                 </div>
               ` : ''}
             </div>
           </div>
           <div class="flex flex-col gap-1 items-end">
-            ${this.renderDDayBadge(dDay)}
+            ${Helpers.renderDDayBadge(dDay)}
             <button class="btn-complete-task text-xs text-green-600 hover:text-green-700 font-semibold" data-task-id="${task.id}">완료</button>
           </div>
         </div>
@@ -371,7 +371,7 @@ class ThreadDetailView {
    * 미배정 Task 렌더링
    */
   renderPendingTask(task) {
-    const dDay = this.calculateDDay(task.due_date);
+    const dDay = Helpers.calculateDDay(task.due_date);
 
     return `
       <div class="p-4 border-2 rounded-xl hover:border-blue-200 transition-colors cursor-pointer task-item" data-task-id="${task.id}">
@@ -379,11 +379,11 @@ class ThreadDetailView {
           <div class="flex items-start gap-3 flex-1">
             <span class="text-gray-400 text-xl mt-0.5">○</span>
             <div class="flex-1">
-              <div class="font-semibold text-gray-900">${this.escapeHtml(task.title)}</div>
+              <div class="font-semibold text-gray-900">${Helpers.escapeHtml(task.title)}</div>
               <div class="text-xs text-gray-500 mt-1">미배정</div>
             </div>
           </div>
-          ${this.renderDDayBadge(dDay)}
+          ${Helpers.renderDDayBadge(dDay)}
         </div>
       </div>
     `;
@@ -631,57 +631,4 @@ class ThreadDetailView {
     }
   }
 
-  /**
-   * D-day 계산
-   */
-  calculateDDay(dueDate) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const due = new Date(dueDate);
-    due.setHours(0, 0, 0, 0);
-
-    return Math.ceil((due - today) / (1000 * 60 * 60 * 24));
-  }
-
-  /**
-   * 날짜 포맷 (M/D)
-   */
-  formatDate(dateString) {
-    const date = new Date(dateString);
-    return `${date.getMonth() + 1}/${date.getDate()}`;
-  }
-
-  /**
-   * 멤버 색상 클래스
-   */
-  getMemberColorClass(role) {
-    const colorMap = {
-      'pm': 'color-coree',
-      'intern': 'color-intern-a',
-      'member': 'color-kim'
-    };
-    return colorMap[role] || 'color-intern-b';
-  }
-
-  /**
-   * 멤버 dot 클래스
-   */
-  getMemberDotClass(role) {
-    const dotMap = {
-      'pm': 'dot-coree',
-      'intern': 'dot-intern-a',
-      'member': 'dot-kim'
-    };
-    return dotMap[role] || 'dot-intern-b';
-  }
-
-  /**
-   * HTML 이스케이프
-   */
-  escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
 }

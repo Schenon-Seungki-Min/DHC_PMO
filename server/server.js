@@ -40,6 +40,9 @@ app.get('/api/projects/:id', async (req, res) => {
 });
 
 app.post('/api/projects', async (req, res) => {
+  if (!req.body.name?.trim()) {
+    return res.status(400).json({ error: 'name is required' });
+  }
   try {
     const newProject = await dataService.createProject(req.body);
     res.status(201).json(newProject);
@@ -100,6 +103,12 @@ app.get('/api/threads/:id', async (req, res) => {
 });
 
 app.post('/api/threads', async (req, res) => {
+  if (!req.body.title?.trim()) {
+    return res.status(400).json({ error: 'title is required' });
+  }
+  if (!req.body.project_id) {
+    return res.status(400).json({ error: 'project_id is required' });
+  }
   try {
     const newThread = await dataService.createThread(req.body);
     res.status(201).json(newThread);
@@ -208,6 +217,12 @@ app.get('/api/tasks/:id', async (req, res) => {
 });
 
 app.post('/api/tasks', async (req, res) => {
+  if (!req.body.title?.trim()) {
+    return res.status(400).json({ error: 'title is required' });
+  }
+  if (!req.body.thread_id) {
+    return res.status(400).json({ error: 'thread_id is required' });
+  }
   try {
     const newTask = await dataService.createTask(req.body);
     res.status(201).json(newTask);
@@ -264,6 +279,12 @@ app.get('/api/members/:id', async (req, res) => {
 });
 
 app.post('/api/members', async (req, res) => {
+  if (!req.body.name?.trim()) {
+    return res.status(400).json({ error: 'name is required' });
+  }
+  if (!req.body.role) {
+    return res.status(400).json({ error: 'role is required' });
+  }
   try {
     const newMember = await dataService.createMember(req.body);
     res.status(201).json(newMember);

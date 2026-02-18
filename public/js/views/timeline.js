@@ -81,7 +81,7 @@ class TimelineView {
       <div class="flex items-center gap-2 mb-4 text-sm text-gray-500 overflow-x-auto">
         <span class="cursor-pointer hover:text-blue-600 transition-colors whitespace-nowrap" id="breadcrumb-projects">Projects</span>
         <span>/</span>
-        <span class="text-gray-900 font-semibold whitespace-nowrap">${this.escapeHtml(this.currentProject.name)}</span>
+        <span class="text-gray-900 font-semibold whitespace-nowrap">${Helpers.escapeHtml(this.currentProject.name)}</span>
       </div>
 
       <!-- Header -->
@@ -139,8 +139,8 @@ class TimelineView {
               <span class="font-bold text-gray-900">담당자:</span>
               ${this.members.map(member => `
                 <span class="flex items-center gap-1.5">
-                  <span class="w-3 h-3 rounded-full ${this.getMemberDotClass(member.role)} shadow-sm"></span>
-                  ${this.escapeHtml(member.name)}
+                  <span class="w-3 h-3 rounded-full ${Helpers.getMemberDotClass(member.role)} shadow-sm"></span>
+                  ${Helpers.escapeHtml(member.name)}
                 </span>
               `).join('')}
               <span class="ml-auto flex items-center gap-1.5">
@@ -194,7 +194,7 @@ class TimelineView {
 
       // D-day 계산
       const threadWithDays = memberThreads.map(thread => {
-        const dDay = this.calculateDDay(thread.due_date);
+        const dDay = Helpers.calculateDDay(thread.due_date);
         const assignment = (this.assignments[thread.id] || []).find(a => a.member_id === member.id);
         return { thread, dDay, role: assignment?.role || 'support' };
       }).sort((a, b) => a.dDay - b.dDay);
@@ -204,8 +204,8 @@ class TimelineView {
       return `
         <div class="border-b border-gray-100 pb-3">
           <div class="flex items-center gap-2 mb-2">
-            <span class="w-4 h-4 rounded-full ${this.getMemberDotClass(member.role)} shadow-sm"></span>
-            <span class="font-bold text-gray-800">${this.escapeHtml(member.name)}</span>
+            <span class="w-4 h-4 rounded-full ${Helpers.getMemberDotClass(member.role)} shadow-sm"></span>
+            <span class="font-bold text-gray-800">${Helpers.escapeHtml(member.name)}</span>
           </div>
           <div class="text-sm text-gray-600 mb-2">Thread ${threadWithDays.length}개</div>
           ${this.renderUrgentThreadBadge(urgentThread)}
@@ -236,7 +236,7 @@ class TimelineView {
 
     return `
       <div class="text-xs">
-        <span class="badge ${badgeClass}">D-${dDay}: ${this.escapeHtml(thread.title)}${icon}</span>
+        <span class="badge ${badgeClass}">D-${dDay}: ${Helpers.escapeHtml(thread.title)}${icon}</span>
       </div>
     `;
   }
@@ -358,7 +358,7 @@ class TimelineView {
 
       weeks.push({
         label: `W${this.getWeekNumber(weekStart)}`,
-        dateRange: `${this.formatDate(weekStart)}~${this.formatDate(weekEnd)}`,
+        dateRange: `${Helpers.formatDate(weekStart)}~${Helpers.formatDate(weekEnd)}`,
         start: weekStart.toISOString().split('T')[0],
         end: weekEnd.toISOString().split('T')[0]
       });
@@ -388,13 +388,6 @@ class TimelineView {
   }
 
   /**
-   * 날짜 포맷 (M/D)
-   */
-  formatDate(date) {
-    return `${date.getMonth() + 1}/${date.getDate()}`;
-  }
-
-  /**
    * 오늘 위치 계산 (0~1)
    */
   calculateTodayPosition(timelineStart, timelineEnd) {
@@ -411,37 +404,4 @@ class TimelineView {
     return todayOffset / totalDays;
   }
 
-  /**
-   * D-day 계산
-   */
-  calculateDDay(dueDate) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const due = new Date(dueDate);
-    due.setHours(0, 0, 0, 0);
-
-    return Math.ceil((due - today) / (1000 * 60 * 60 * 24));
-  }
-
-  /**
-   * 멤버 색상 dot 클래스
-   */
-  getMemberDotClass(role) {
-    const dotMap = {
-      'pm': 'dot-coree',
-      'intern': 'dot-intern-a',
-      'member': 'dot-kim'
-    };
-    return dotMap[role] || 'dot-intern-b';
-  }
-
-  /**
-   * HTML 이스케이프
-   */
-  escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
 }
