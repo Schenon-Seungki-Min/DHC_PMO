@@ -280,9 +280,7 @@ class TimelineView {
     // Excel 내보내기
     const btnExport = document.getElementById('btn-export-excel');
     if (btnExport) {
-      btnExport.addEventListener('click', () => {
-        alert('Excel 내보내기는 P8에서 구현됩니다.');
-      });
+      btnExport.addEventListener('click', () => this.exportToExcel());
     }
 
     // Thread 바 클릭 → Detail 뷰
@@ -295,6 +293,30 @@ class TimelineView {
         }
       });
     });
+  }
+
+  /**
+   * Excel 내보내기
+   */
+  async exportToExcel() {
+    try {
+      // 모든 Task 로드
+      const allTasks = await this.apiClient.getAllTasks();
+      const projectTasks = allTasks.filter(t =>
+        this.threads.some(th => th.id === t.thread_id)
+      );
+
+      excelExporter.exportProject(
+        this.currentProject,
+        this.threads,
+        projectTasks,
+        this.members,
+        this.assignments
+      );
+    } catch (error) {
+      console.error('Excel export failed:', error);
+      alert('Excel 내보내기에 실패했습니다: ' + error.message);
+    }
   }
 
   /**
