@@ -2,6 +2,27 @@
  * Main App - 앱 초기화 및 라우팅
  */
 
+// 인증 가드: 토큰 없거나 만료되면 로그인 페이지로
+(function checkAuth() {
+  const token = localStorage.getItem('pmo_token');
+  if (!token) { window.location.href = '/login.html'; return; }
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    if (payload.exp && Date.now() / 1000 > payload.exp) {
+      localStorage.removeItem('pmo_token');
+      window.location.href = '/login.html';
+    }
+  } catch (e) {
+    localStorage.removeItem('pmo_token');
+    window.location.href = '/login.html';
+  }
+})();
+
+function logout() {
+  localStorage.removeItem('pmo_token');
+  window.location.href = '/login.html';
+}
+
 class App {
   constructor() {
     this.apiClient = apiClient;

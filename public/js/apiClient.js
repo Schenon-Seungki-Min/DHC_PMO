@@ -11,13 +11,21 @@ class APIClient {
    */
   async request(endpoint, options = {}) {
     try {
+      const token = localStorage.getItem('pmo_token');
       const response = await fetch(`${API_BASE}${endpoint}`, {
         headers: {
           'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
           ...options.headers
         },
         ...options
       });
+
+      if (response.status === 401) {
+        localStorage.removeItem('pmo_token');
+        window.location.href = '/login.html';
+        return;
+      }
 
       if (!response.ok) {
         const error = await response.json().catch(() => ({}));

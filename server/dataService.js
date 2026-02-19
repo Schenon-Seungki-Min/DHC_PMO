@@ -1,545 +1,523 @@
-const fs = require('fs').promises;
-const path = require('path');
+const { createClient } = require('@supabase/supabase-js');
 
-const DATA_FILE = path.join(__dirname, '../data/data.json');
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 /**
- * Data Service - JSON 파일 기반 데이터 레이어
- * 나중에 Supabase로 마이그레이션할 때 이 파일만 교체하면 됨
+ * Data Service - Supabase 기반 데이터 레이어
+ * JSON 파일 기반 버전과 동일한 메서드 시그니처 유지
  */
 class DataService {
-  constructor() {
-    this.data = null;
-  }
-
-  /**
-   * 데이터 파일 읽기
-   */
-  async loadData() {
-    try {
-      const fileContent = await fs.readFile(DATA_FILE, 'utf8');
-      this.data = JSON.parse(fileContent);
-      return this.data;
-    } catch (error) {
-      console.error('Error loading data:', error);
-      throw new Error('Failed to load data');
-    }
-  }
-
-  /**
-   * 데이터 파일 쓰기
-   */
-  async saveData() {
-    try {
-      await fs.writeFile(DATA_FILE, JSON.stringify(this.data, null, 2), 'utf8');
-    } catch (error) {
-      console.error('Error saving data:', error);
-      throw new Error('Failed to save data');
-    }
-  }
-
-  /**
-   * 데이터 초기화 (메모리에 없으면 파일에서 로드)
-   */
-  async ensureData() {
-    if (!this.data) {
-      await this.loadData();
-    }
-  }
 
   // ========== PROJECTS ==========
 
   async getAllProjects() {
-    await this.ensureData();
-    return this.data.projects;
+    const { data, error } = await supabase
+      .from('projects')
+      .select('*')
+      .order('created_at', { ascending: true });
+    if (error) throw new Error(error.message);
+    return data;
   }
 
   async getProjectById(id) {
-    await this.ensureData();
-    return this.data.projects.find(p => p.id === id);
+    const { data, error } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (error && error.code === 'PGRST116') return null;
+    if (error) throw new Error(error.message);
+    return data;
   }
 
   async createProject(projectData) {
-    await this.ensureData();
-    const newProject = {
-      ...projectData,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-    this.data.projects.push(newProject);
-    await this.saveData();
-    return newProject;
+    const { data, error } = await supabase
+      .from('projects')
+      .insert([projectData])
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data;
   }
 
   async updateProject(id, updates) {
-    await this.ensureData();
-    const index = this.data.projects.findIndex(p => p.id === id);
-    if (index === -1) return null;
-
-    this.data.projects[index] = {
-      ...this.data.projects[index],
-      ...updates,
-      updated_at: new Date().toISOString()
-    };
-    await this.saveData();
-    return this.data.projects[index];
+    const { data, error } = await supabase
+      .from('projects')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error && error.code === 'PGRST116') return null;
+    if (error) throw new Error(error.message);
+    return data;
   }
 
   async deleteProject(id) {
-    await this.ensureData();
-    const index = this.data.projects.findIndex(p => p.id === id);
-    if (index === -1) return false;
-
-    this.data.projects.splice(index, 1);
-    await this.saveData();
+    const { error } = await supabase
+      .from('projects')
+      .delete()
+      .eq('id', id);
+    if (error) throw new Error(error.message);
     return true;
   }
 
   // ========== THREADS ==========
 
   async getAllThreads(filters = {}) {
-    await this.ensureData();
-    let threads = this.data.threads;
-
-    if (filters.project_id) {
-      threads = threads.filter(t => t.project_id === filters.project_id);
-    }
-    if (filters.status) {
-      threads = threads.filter(t => t.status === filters.status);
-    }
-
-    return threads;
+    let query = supabase.from('threads').select('*');
+    if (filters.project_id) query = query.eq('project_id', filters.project_id);
+    if (filters.status) query = query.eq('status', filters.status);
+    query = query.order('created_at', { ascending: true });
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
+    return data;
   }
 
   async getThreadById(id) {
-    await this.ensureData();
-    return this.data.threads.find(t => t.id === id);
+    const { data, error } = await supabase
+      .from('threads')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (error && error.code === 'PGRST116') return null;
+    if (error) throw new Error(error.message);
+    return data;
   }
 
   async createThread(threadData) {
-    await this.ensureData();
-    const newThread = {
-      ...threadData,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-    this.data.threads.push(newThread);
-    await this.saveData();
-    return newThread;
+    const { data, error } = await supabase
+      .from('threads')
+      .insert([threadData])
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data;
   }
 
   async updateThread(id, updates) {
-    await this.ensureData();
-    const index = this.data.threads.findIndex(t => t.id === id);
-    if (index === -1) return null;
-
-    this.data.threads[index] = {
-      ...this.data.threads[index],
-      ...updates,
-      updated_at: new Date().toISOString()
-    };
-    await this.saveData();
-    return this.data.threads[index];
+    const { data, error } = await supabase
+      .from('threads')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error && error.code === 'PGRST116') return null;
+    if (error) throw new Error(error.message);
+    return data;
   }
 
   async deleteThread(id) {
-    await this.ensureData();
-    const index = this.data.threads.findIndex(t => t.id === id);
-    if (index === -1) return false;
-
-    this.data.threads.splice(index, 1);
-    await this.saveData();
+    const { error } = await supabase
+      .from('threads')
+      .delete()
+      .eq('id', id);
+    if (error) throw new Error(error.message);
     return true;
   }
 
   // ========== TASKS ==========
 
   async getAllTasks(filters = {}) {
-    await this.ensureData();
-    let tasks = this.data.tasks;
-
-    if (filters.thread_id) {
-      tasks = tasks.filter(t => t.thread_id === filters.thread_id);
-    }
-    if (filters.assignee_id) {
-      tasks = tasks.filter(t => t.assignee_id === filters.assignee_id);
-    }
-    if (filters.status) {
-      tasks = tasks.filter(t => t.status === filters.status);
-    }
-
-    return tasks;
+    let query = supabase.from('tasks').select('*');
+    if (filters.thread_id) query = query.eq('thread_id', filters.thread_id);
+    if (filters.assignee_id) query = query.eq('assignee_id', filters.assignee_id);
+    if (filters.status) query = query.eq('status', filters.status);
+    query = query.order('created_at', { ascending: true });
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
+    return data;
   }
 
   async getTaskById(id) {
-    await this.ensureData();
-    return this.data.tasks.find(t => t.id === id);
+    const { data, error } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (error && error.code === 'PGRST116') return null;
+    if (error) throw new Error(error.message);
+    return data;
   }
 
   async createTask(taskData) {
-    await this.ensureData();
-    const newTask = {
-      ...taskData,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-    this.data.tasks.push(newTask);
-    await this.saveData();
-    return newTask;
+    const { data, error } = await supabase
+      .from('tasks')
+      .insert([taskData])
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data;
   }
 
   async updateTask(id, updates) {
-    await this.ensureData();
-    const index = this.data.tasks.findIndex(t => t.id === id);
-    if (index === -1) return null;
-
-    this.data.tasks[index] = {
-      ...this.data.tasks[index],
-      ...updates,
-      updated_at: new Date().toISOString()
-    };
-    await this.saveData();
-    return this.data.tasks[index];
+    const { data, error } = await supabase
+      .from('tasks')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error && error.code === 'PGRST116') return null;
+    if (error) throw new Error(error.message);
+    return data;
   }
 
   async deleteTask(id) {
-    await this.ensureData();
-    const index = this.data.tasks.findIndex(t => t.id === id);
-    if (index === -1) return false;
-
-    this.data.tasks.splice(index, 1);
-    await this.saveData();
+    const { error } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('id', id);
+    if (error) throw new Error(error.message);
     return true;
   }
 
   // ========== TEAM MEMBERS ==========
 
   async getAllMembers() {
-    await this.ensureData();
-    return this.data.team_members.filter(m => m.is_active);
+    const { data, error } = await supabase
+      .from('team_members')
+      .select('*')
+      .eq('is_active', true)
+      .order('created_at', { ascending: true });
+    if (error) throw new Error(error.message);
+    return data;
   }
 
   async getMemberById(id) {
-    await this.ensureData();
-    return this.data.team_members.find(m => m.id === id);
+    const { data, error } = await supabase
+      .from('team_members')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (error && error.code === 'PGRST116') return null;
+    if (error) throw new Error(error.message);
+    return data;
   }
 
   async createMember(memberData) {
-    await this.ensureData();
-    const newMember = {
-      ...memberData,
-      is_active: true,
-      created_at: new Date().toISOString()
-    };
-    this.data.team_members.push(newMember);
-    await this.saveData();
-    return newMember;
+    const payload = { ...memberData, is_active: true };
+    const { data, error } = await supabase
+      .from('team_members')
+      .insert([payload])
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data;
   }
 
   async updateMember(id, updates) {
-    await this.ensureData();
-    const index = this.data.team_members.findIndex(m => m.id === id);
-    if (index === -1) return null;
-
-    this.data.team_members[index] = {
-      ...this.data.team_members[index],
-      ...updates
-    };
-    await this.saveData();
-    return this.data.team_members[index];
+    const { data, error } = await supabase
+      .from('team_members')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error && error.code === 'PGRST116') return null;
+    if (error) throw new Error(error.message);
+    return data;
   }
 
   async deleteMember(id) {
-    await this.ensureData();
-    const index = this.data.team_members.findIndex(m => m.id === id);
-    if (index === -1) return false;
-
     // Soft delete
-    this.data.team_members[index].is_active = false;
-    await this.saveData();
+    const { error } = await supabase
+      .from('team_members')
+      .update({ is_active: false })
+      .eq('id', id);
+    if (error) throw new Error(error.message);
     return true;
   }
 
   // ========== THREAD ASSIGNMENTS ==========
 
   async assignThread(threadId, memberId, role, note = '') {
-    await this.ensureData();
-    const newAssignment = {
-      id: `assign-${Date.now()}`,
+    const payload = {
+      id: `assign-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
       thread_id: threadId,
       member_id: memberId,
-      role: role,
+      role,
       grabbed_at: new Date().toISOString(),
       released_at: null,
-      note: note
+      note
     };
-    this.data.thread_assignments.push(newAssignment);
-    await this.saveData();
-    return newAssignment;
+    const { data, error } = await supabase
+      .from('thread_assignments')
+      .insert([payload])
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data;
   }
 
   async releaseThread(assignmentId, note = '') {
-    await this.ensureData();
-    const index = this.data.thread_assignments.findIndex(a => a.id === assignmentId);
-    if (index === -1) return null;
-
-    this.data.thread_assignments[index].released_at = new Date().toISOString();
-    if (note) {
-      this.data.thread_assignments[index].note = note;
-    }
-    await this.saveData();
-    return this.data.thread_assignments[index];
+    const updates = { released_at: new Date().toISOString() };
+    if (note) updates.note = note;
+    const { data, error } = await supabase
+      .from('thread_assignments')
+      .update(updates)
+      .eq('id', assignmentId)
+      .select()
+      .single();
+    if (error && error.code === 'PGRST116') return null;
+    if (error) throw new Error(error.message);
+    return data;
   }
 
   async getThreadAssignments(threadId) {
-    await this.ensureData();
-    return this.data.thread_assignments
-      .filter(a => a.thread_id === threadId)
-      .sort((a, b) => new Date(a.grabbed_at) - new Date(b.grabbed_at));
+    const { data, error } = await supabase
+      .from('thread_assignments')
+      .select('*')
+      .eq('thread_id', threadId)
+      .order('grabbed_at', { ascending: true });
+    if (error) throw new Error(error.message);
+    return data;
   }
 
   async getCurrentAssignments(threadId) {
-    await this.ensureData();
-    return this.data.thread_assignments.filter(
-      a => a.thread_id === threadId && a.released_at === null
-    );
+    const { data, error } = await supabase
+      .from('thread_assignments')
+      .select('*')
+      .eq('thread_id', threadId)
+      .is('released_at', null);
+    if (error) throw new Error(error.message);
+    return data;
   }
 
   // ========== STAKEHOLDERS ==========
 
   async getAllStakeholders() {
-    await this.ensureData();
-    return this.data.stakeholders;
+    const { data, error } = await supabase
+      .from('stakeholders')
+      .select('*')
+      .order('created_at', { ascending: true });
+    if (error) throw new Error(error.message);
+    return data;
   }
 
   async getStakeholderById(id) {
-    await this.ensureData();
-    return this.data.stakeholders.find(s => s.id === id);
+    const { data, error } = await supabase
+      .from('stakeholders')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (error && error.code === 'PGRST116') return null;
+    if (error) throw new Error(error.message);
+    return data;
   }
 
   async createStakeholder(stakeholderData) {
-    await this.ensureData();
-    const newStakeholder = {
-      ...stakeholderData,
-      created_at: new Date().toISOString()
-    };
-    this.data.stakeholders.push(newStakeholder);
-    await this.saveData();
-    return newStakeholder;
+    const { data, error } = await supabase
+      .from('stakeholders')
+      .insert([stakeholderData])
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data;
   }
 
   async updateStakeholder(id, updates) {
-    await this.ensureData();
-    const index = this.data.stakeholders.findIndex(s => s.id === id);
-    if (index === -1) return null;
-
-    this.data.stakeholders[index] = {
-      ...this.data.stakeholders[index],
-      ...updates
-    };
-    await this.saveData();
-    return this.data.stakeholders[index];
+    const { data, error } = await supabase
+      .from('stakeholders')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error && error.code === 'PGRST116') return null;
+    if (error) throw new Error(error.message);
+    return data;
   }
 
   async deleteStakeholder(id) {
-    await this.ensureData();
-    const index = this.data.stakeholders.findIndex(s => s.id === id);
-    if (index === -1) return false;
-
-    this.data.stakeholders.splice(index, 1);
-    await this.saveData();
+    const { error } = await supabase
+      .from('stakeholders')
+      .delete()
+      .eq('id', id);
+    if (error) throw new Error(error.message);
     return true;
   }
 
   // ========== THREAD STAKEHOLDERS ==========
 
   async addThreadStakeholder(threadId, stakeholderId, roleType) {
-    await this.ensureData();
-    const newMapping = {
+    const payload = {
       thread_id: threadId,
       stakeholder_id: stakeholderId,
       role_type: roleType
     };
-    this.data.thread_stakeholders.push(newMapping);
-    await this.saveData();
-    return newMapping;
+    const { data, error } = await supabase
+      .from('thread_stakeholders')
+      .insert([payload])
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data;
   }
 
   async removeThreadStakeholder(threadId, stakeholderId) {
-    await this.ensureData();
-    const index = this.data.thread_stakeholders.findIndex(
-      ts => ts.thread_id === threadId && ts.stakeholder_id === stakeholderId
-    );
-    if (index === -1) return false;
-
-    this.data.thread_stakeholders.splice(index, 1);
-    await this.saveData();
+    const { error } = await supabase
+      .from('thread_stakeholders')
+      .delete()
+      .eq('thread_id', threadId)
+      .eq('stakeholder_id', stakeholderId);
+    if (error) throw new Error(error.message);
     return true;
   }
 
   async getThreadStakeholders(threadId) {
-    await this.ensureData();
-    const mappings = this.data.thread_stakeholders.filter(
-      ts => ts.thread_id === threadId
-    );
-
-    return mappings.map(mapping => {
-      const stakeholder = this.data.stakeholders.find(
-        s => s.id === mapping.stakeholder_id
-      );
-      return {
-        ...stakeholder,
-        role_type: mapping.role_type
-      };
-    });
+    const { data, error } = await supabase
+      .from('thread_stakeholders')
+      .select(`
+        role_type,
+        stakeholders (*)
+      `)
+      .eq('thread_id', threadId);
+    if (error) throw new Error(error.message);
+    return data.map(row => ({
+      ...row.stakeholders,
+      role_type: row.role_type
+    }));
   }
 
   // ========== THREAD TEMPLATES ==========
 
   async getAllTemplates() {
-    await this.ensureData();
-    return this.data.thread_templates;
+    const { data, error } = await supabase
+      .from('thread_templates')
+      .select('*')
+      .order('created_at', { ascending: true });
+    if (error) throw new Error(error.message);
+    return data;
   }
 
   async getTemplateById(id) {
-    await this.ensureData();
-    return this.data.thread_templates.find(t => t.id === id);
+    const { data, error } = await supabase
+      .from('thread_templates')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (error && error.code === 'PGRST116') return null;
+    if (error) throw new Error(error.message);
+    return data;
   }
 
   async createTemplate(templateData) {
-    await this.ensureData();
-    const newTemplate = {
-      ...templateData,
-      created_at: new Date().toISOString()
-    };
-    this.data.thread_templates.push(newTemplate);
-    await this.saveData();
-    return newTemplate;
+    const { data, error } = await supabase
+      .from('thread_templates')
+      .insert([templateData])
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data;
   }
 
   async updateTemplate(id, updates) {
-    await this.ensureData();
-    const index = this.data.thread_templates.findIndex(t => t.id === id);
-    if (index === -1) return null;
-
-    this.data.thread_templates[index] = {
-      ...this.data.thread_templates[index],
-      ...updates
-    };
-    await this.saveData();
-    return this.data.thread_templates[index];
+    const { data, error } = await supabase
+      .from('thread_templates')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error && error.code === 'PGRST116') return null;
+    if (error) throw new Error(error.message);
+    return data;
   }
 
   async deleteTemplate(id) {
-    await this.ensureData();
-    const index = this.data.thread_templates.findIndex(t => t.id === id);
-    if (index === -1) return false;
-
-    this.data.thread_templates.splice(index, 1);
-    await this.saveData();
+    const { error } = await supabase
+      .from('thread_templates')
+      .delete()
+      .eq('id', id);
+    if (error) throw new Error(error.message);
     return true;
   }
 
   // ========== TEMPLATE TASKS ==========
 
   async getTemplateTasks(templateId) {
-    await this.ensureData();
-    return this.data.template_tasks
-      .filter(t => t.template_id === templateId)
-      .sort((a, b) => a.order - b.order);
+    const { data, error } = await supabase
+      .from('template_tasks')
+      .select('*')
+      .eq('template_id', templateId)
+      .order('order', { ascending: true });
+    if (error) throw new Error(error.message);
+    return data;
   }
 
   async createTemplateTask(taskData) {
-    await this.ensureData();
-    const newTask = {
-      ...taskData
-    };
-    this.data.template_tasks.push(newTask);
-    await this.saveData();
-    return newTask;
+    const { data, error } = await supabase
+      .from('template_tasks')
+      .insert([taskData])
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data;
   }
 
   async updateTemplateTask(id, updates) {
-    await this.ensureData();
-    const index = this.data.template_tasks.findIndex(t => t.id === id);
-    if (index === -1) return null;
-
-    this.data.template_tasks[index] = {
-      ...this.data.template_tasks[index],
-      ...updates
-    };
-    await this.saveData();
-    return this.data.template_tasks[index];
+    const { data, error } = await supabase
+      .from('template_tasks')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error && error.code === 'PGRST116') return null;
+    if (error) throw new Error(error.message);
+    return data;
   }
 
   async deleteTemplateTask(id) {
-    await this.ensureData();
-    const index = this.data.template_tasks.findIndex(t => t.id === id);
-    if (index === -1) return false;
-
-    this.data.template_tasks.splice(index, 1);
-    await this.saveData();
+    const { error } = await supabase
+      .from('template_tasks')
+      .delete()
+      .eq('id', id);
+    if (error) throw new Error(error.message);
     return true;
   }
 
   // ========== CREATE THREAD FROM TEMPLATE ==========
 
   async createThreadFromTemplate(templateId, threadData) {
-    await this.ensureData();
-
-    // 1. Get template
     const template = await this.getTemplateById(templateId);
-    if (!template) {
-      throw new Error('Template not found');
-    }
+    if (!template) throw new Error('Template not found');
 
-    // 2. Create thread
     const newThread = {
       ...threadData,
-      thread_type: template.thread_type,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      thread_type: template.thread_type
     };
-    this.data.threads.push(newThread);
+    const { data: createdThread, error: threadError } = await supabase
+      .from('threads')
+      .insert([newThread])
+      .select()
+      .single();
+    if (threadError) throw new Error(threadError.message);
 
-    // 3. Get template tasks
     const templateTasks = await this.getTemplateTasks(templateId);
-
-    // 4. Create tasks from template
     const dueDate = new Date(threadData.due_date);
-    const createdTasks = [];
-
-    for (const templateTask of templateTasks) {
-      const taskDueDate = new Date(dueDate);
-      taskDueDate.setDate(taskDueDate.getDate() + templateTask.day_offset);
-
-      const newTask = {
+    const taskRows = templateTasks.map(tt => {
+      const taskDue = new Date(dueDate);
+      taskDue.setDate(taskDue.getDate() + tt.day_offset);
+      return {
         id: `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        thread_id: newThread.id,
-        title: templateTask.title,
+        thread_id: createdThread.id,
+        title: tt.title,
         assignee_id: null,
         start_date: null,
-        due_date: taskDueDate.toISOString().split('T')[0],
+        due_date: taskDue.toISOString().split('T')[0],
         status: 'todo',
-        priority: templateTask.priority,
-        notes: templateTask.notes,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        priority: tt.priority,
+        notes: tt.notes || ''
       };
-      this.data.tasks.push(newTask);
-      createdTasks.push(newTask);
+    });
+
+    if (taskRows.length > 0) {
+      const { error: taskError } = await supabase.from('tasks').insert(taskRows);
+      if (taskError) throw new Error(taskError.message);
     }
 
-    await this.saveData();
-
-    return {
-      thread: newThread,
-      tasks: createdTasks
-    };
+    return { thread: createdThread, tasks: taskRows };
   }
 }
 
-// Singleton instance
 const dataService = new DataService();
-
 module.exports = dataService;
