@@ -5,7 +5,7 @@ const REQUIRED_ENV = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'PMO_SECRET_K
 for (const key of REQUIRED_ENV) {
   if (!process.env[key]) {
     console.error(`❌ Missing required env var: ${key}`);
-    process.exit(1);
+    if (require.main === module) process.exit(1); // 로컬에서만 종료
   }
 }
 
