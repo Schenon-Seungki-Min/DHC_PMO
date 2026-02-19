@@ -339,7 +339,103 @@ class TimelineView {
    * 새 Thread 모달
    */
   showNewThreadModal() {
-    alert('새 Thread 생성은 P3에서 기본 구현, P5에서 완성됩니다.');
+    const today = new Date().toISOString().split('T')[0];
+
+    const projectSelectHtml = !this.currentProject ? `
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1">프로젝트 <span class="text-red-500">*</span></label>
+        <select id="m-thread-project" class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-400 focus:outline-none">
+          <option value="">프로젝트 선택</option>
+          ${(this.projects || []).map(p => `<option value="${p.id}">${Helpers.escapeHtml(p.name)}</option>`).join('')}
+        </select>
+      </div>
+    ` : '';
+
+    Helpers.showModal(`
+      <h3 class="text-lg font-bold text-gray-900 mb-5">새 Thread 생성</h3>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">제목 <span class="text-red-500">*</span></label>
+          <input type="text" id="m-thread-title" placeholder="Thread 제목" maxlength="60"
+            class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-400 focus:outline-none">
+        </div>
+        ${projectSelectHtml}
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">유형 <span class="text-red-500">*</span></label>
+          <div class="flex flex-wrap gap-2">
+            <label class="flex items-center gap-2 cursor-pointer px-3 py-2 border-2 border-gray-200 rounded-xl hover:border-blue-300 transition has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50">
+              <input type="radio" name="m-thread-type" value="negotiation" checked class="accent-blue-600">
+              <span class="text-sm font-semibold">협상</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer px-3 py-2 border-2 border-gray-200 rounded-xl hover:border-blue-300 transition has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50">
+              <input type="radio" name="m-thread-type" value="execution" class="accent-blue-600">
+              <span class="text-sm font-semibold">실행</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer px-3 py-2 border-2 border-gray-200 rounded-xl hover:border-blue-300 transition has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50">
+              <input type="radio" name="m-thread-type" value="development" class="accent-blue-600">
+              <span class="text-sm font-semibold">개발</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer px-3 py-2 border-2 border-gray-200 rounded-xl hover:border-blue-300 transition has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50">
+              <input type="radio" name="m-thread-type" value="research" class="accent-blue-600">
+              <span class="text-sm font-semibold">리서치</span>
+            </label>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">시작일</label>
+            <input type="date" id="m-thread-start" value="${today}"
+              class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-400 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">마감일 <span class="text-red-500">*</span></label>
+            <input type="date" id="m-thread-due" value="${today}"
+              class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-400 focus:outline-none">
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">목표 / 성과 기준</label>
+          <input type="text" id="m-thread-goal" placeholder="이 Thread의 목표를 간략히 입력" maxlength="100"
+            class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-400 focus:outline-none">
+        </div>
+      </div>
+      <div class="flex gap-3 mt-6">
+        <button id="m-cancel" class="flex-1 py-2.5 rounded-xl border-2 border-gray-200 text-gray-700 font-semibold text-sm hover:bg-gray-50 transition">취소</button>
+        <button id="m-submit" class="flex-1 py-2.5 rounded-xl btn-primary text-white font-semibold text-sm">생성</button>
+      </div>
+    `);
+
+    document.getElementById('m-cancel').onclick = () => Helpers.closeModal();
+    document.getElementById('m-submit').onclick = async () => {
+      const title = document.getElementById('m-thread-title').value.trim();
+      const projectId = this.currentProject
+        ? this.currentProject.id
+        : document.getElementById('m-thread-project')?.value;
+      const threadType = document.querySelector('input[name="m-thread-type"]:checked')?.value || 'execution';
+      const startDate = document.getElementById('m-thread-start').value;
+      const dueDate = document.getElementById('m-thread-due').value;
+      const outcomeGoal = document.getElementById('m-thread-goal').value.trim();
+
+      if (!title) { alert('제목을 입력해주세요.'); return; }
+      if (!projectId) { alert('프로젝트를 선택해주세요.'); return; }
+      if (!dueDate) { alert('마감일을 선택해주세요.'); return; }
+
+      Helpers.closeModal();
+      try {
+        await this.apiClient.createThread({
+          title,
+          project_id: projectId,
+          thread_type: threadType,
+          start_date: startDate || null,
+          due_date: dueDate,
+          outcome_goal: outcomeGoal || null,
+          status: 'active'
+        });
+        await this.render(this.container, this.currentProject);
+      } catch (error) {
+        alert('Thread 생성 실패: ' + error.message);
+      }
+    };
   }
 
   /**
