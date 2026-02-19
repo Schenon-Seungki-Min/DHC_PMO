@@ -546,8 +546,13 @@ app.post('/api/threads/from-template', async (req, res) => {
   }
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`🚀 DHC_PMO server running on http://localhost:${PORT}`);
-  console.log(`📊 API: http://localhost:${PORT}/api/health`);
-});
+// Start server (local dev)
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`🚀 DHC_PMO server running on http://localhost:${PORT}`);
+    console.log(`📊 API: http://localhost:${PORT}/api/health`);
+  });
+}
+
+// Vercel serverless export
+module.exports = app;
