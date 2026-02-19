@@ -80,19 +80,18 @@ class TimelineView {
     timelineEnd.setHours(23, 59, 59, 999);
 
     const todayPosition = this.calculateTodayPosition(timelineStart, timelineEnd);
+    const titleText = this.currentProject
+      ? Helpers.escapeHtml(this.currentProject.name)
+      : '전체 프로젝트';
 
     this.container.innerHTML = `
-      <!-- Breadcrumb -->
-      <div class="flex items-center gap-2 mb-4 text-sm text-gray-500 overflow-x-auto">
-        <span class="cursor-pointer hover:text-blue-600 transition-colors whitespace-nowrap" id="breadcrumb-projects">Projects</span>
-        <span>/</span>
-        <span class="text-gray-900 font-semibold whitespace-nowrap">${Helpers.escapeHtml(this.currentProject.name)}</span>
-      </div>
-
       <!-- Header -->
       <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
         <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-          <h2 class="text-xl md:text-2xl font-bold text-gray-900">Thread Timeline</h2>
+          <div>
+            <h2 class="text-xl md:text-2xl font-bold text-gray-900">Thread Timeline</h2>
+            <p class="text-sm text-gray-500 font-medium mt-0.5">${titleText}</p>
+          </div>
           <div class="flex items-center gap-1 card-modern p-1 shadow-sm">
             <button id="btn-prev-week" class="px-3 py-1.5 text-sm font-medium hover:bg-gray-100 rounded-md transition-colors">← 이전</button>
             <button id="btn-today" class="px-3 py-1.5 text-sm font-semibold bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-md shadow-sm">오늘</button>
@@ -251,14 +250,6 @@ class TimelineView {
    * 이벤트 리스너 등록
    */
   attachEventListeners() {
-    // Breadcrumb - Projects로 돌아가기
-    const breadcrumb = document.getElementById('breadcrumb-projects');
-    if (breadcrumb) {
-      breadcrumb.addEventListener('click', () => {
-        window.app.showView('projects');
-      });
-    }
-
     // 이전 주
     const btnPrev = document.getElementById('btn-prev-week');
     if (btnPrev) {
@@ -295,6 +286,9 @@ class TimelineView {
         const threadId = el.dataset.threadId;
         const thread = this.threads.find(t => t.id === threadId);
         if (thread) {
+          // Thread의 프로젝트를 함께 전달
+          const project = this.projects ? this.projects.find(p => p.id === thread.project_id) : null;
+          window.app.currentProject = project;
           window.app.showThreadDetail(thread);
         }
       });
@@ -306,14 +300,14 @@ class TimelineView {
    */
   async exportToExcel() {
     try {
-      // 모든 Task 로드
       const allTasks = await this.apiClient.getAllTasks();
       const projectTasks = allTasks.filter(t =>
         this.threads.some(th => th.id === t.thread_id)
       );
-
+      // null project 시 더미 프로젝트 객체 사용
+      const projectForExport = this.currentProject || { name: '전체프로젝트', id: 'all' };
       excelExporter.exportProject(
-        this.currentProject,
+        projectForExport,
         this.threads,
         projectTasks,
         this.members,

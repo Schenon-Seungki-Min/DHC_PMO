@@ -233,7 +233,11 @@ app.post('/api/tasks', async (req, res) => {
     return res.status(400).json({ error: 'thread_id is required' });
   }
   try {
-    const newTask = await dataService.createTask(req.body);
+    const taskData = {
+      id: req.body.id || `task-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+      ...req.body
+    };
+    const newTask = await dataService.createTask(taskData);
     res.status(201).json(newTask);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -291,11 +295,15 @@ app.post('/api/members', async (req, res) => {
   if (!req.body.name?.trim()) {
     return res.status(400).json({ error: 'name is required' });
   }
-  if (!req.body.role) {
-    return res.status(400).json({ error: 'role is required' });
+  if (!req.body.role || !['pm', 'member', 'intern'].includes(req.body.role)) {
+    return res.status(400).json({ error: 'role must be pm, member, or intern' });
   }
   try {
-    const newMember = await dataService.createMember(req.body);
+    const memberData = {
+      id: req.body.id || `member-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+      ...req.body
+    };
+    const newMember = await dataService.createMember(memberData);
     res.status(201).json(newMember);
   } catch (error) {
     res.status(500).json({ error: error.message });
