@@ -223,15 +223,22 @@ class PeopleView {
               <div class="text-sm text-gray-600 font-medium">${Helpers.translateRole(member.role)}</div>
             </div>
           </div>
-          <div class="flex gap-6 text-sm">
-            <div class="text-center">
-              <div class="font-black text-2xl text-blue-600">${info.threadCount}</div>
-              <div class="text-gray-600 font-medium">Thread</div>
+          <div class="flex items-center gap-4">
+            <div class="flex gap-6 text-sm">
+              <div class="text-center">
+                <div class="font-black text-2xl text-blue-600">${info.threadCount}</div>
+                <div class="text-gray-600 font-medium">Thread</div>
+              </div>
+              <div class="text-center">
+                <div class="font-black text-2xl text-gray-700">${info.taskCount}</div>
+                <div class="text-gray-600 font-medium">Task</div>
+              </div>
             </div>
-            <div class="text-center">
-              <div class="font-black text-2xl text-gray-700">${info.taskCount}</div>
-              <div class="text-gray-600 font-medium">Task</div>
-            </div>
+            <button class="btn-delete-member p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition" data-member-id="${member.id}" title="팀원 삭제">
+              <svg class="w-4 h-4 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+              </svg>
+            </button>
           </div>
         </div>
 
@@ -319,35 +326,97 @@ class PeopleView {
     if (btnAddMember) {
       btnAddMember.addEventListener('click', () => this.showAddMemberModal());
     }
+
+    // 팀원 삭제
+    document.querySelectorAll('.btn-delete-member').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.deleteMember(btn.dataset.memberId);
+      });
+    });
   }
 
   /**
    * 팀원 추가 모달
    */
-  async showAddMemberModal() {
-    const name = prompt('팀원 이름:');
-    if (!name) return;
+  showAddMemberModal() {
+    const colorOptions = [
+      { value: '#374151', label: '회색 (Gray)' },
+      { value: '#3B82F6', label: '파랑 (Blue)' },
+      { value: '#8B5CF6', label: '보라 (Purple)' },
+      { value: '#10B981', label: '초록 (Green)' },
+      { value: '#F59E0B', label: '노랑 (Amber)' },
+      { value: '#EF4444', label: '빨강 (Red)' }
+    ].map(c => `<option value="${c.value}">${c.label}</option>`).join('');
 
-    const roleOptions = 'pm, intern, member';
-    const role = prompt(`역할 (${roleOptions}):`);
-    if (!role) return;
+    Helpers.showModal(`
+      <h3 class="text-lg font-bold text-gray-900 mb-5">팀원 추가</h3>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">이름 <span class="text-red-500">*</span></label>
+          <input type="text" id="m-member-name" placeholder="이름 입력" maxlength="20"
+            class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-400 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">역할 <span class="text-red-500">*</span></label>
+          <div class="flex flex-wrap gap-3">
+            <label class="flex items-center gap-2 cursor-pointer px-4 py-2 border-2 border-gray-200 rounded-xl hover:border-blue-300 transition has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50">
+              <input type="radio" name="m-member-role" value="pm" class="accent-blue-600">
+              <span class="text-sm font-semibold">PM</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer px-4 py-2 border-2 border-gray-200 rounded-xl hover:border-blue-300 transition has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50">
+              <input type="radio" name="m-member-role" value="member" checked class="accent-blue-600">
+              <span class="text-sm font-semibold">팀원</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer px-4 py-2 border-2 border-gray-200 rounded-xl hover:border-blue-300 transition has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50">
+              <input type="radio" name="m-member-role" value="intern" class="accent-blue-600">
+              <span class="text-sm font-semibold">인턴</span>
+            </label>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">색상</label>
+          <select id="m-member-color" class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-400 focus:outline-none">
+            ${colorOptions}
+          </select>
+        </div>
+      </div>
+      <div class="flex gap-3 mt-6">
+        <button id="m-cancel" class="flex-1 py-2.5 rounded-xl border-2 border-gray-200 text-gray-700 font-semibold text-sm hover:bg-gray-50 transition">취소</button>
+        <button id="m-submit" class="flex-1 py-2.5 rounded-xl btn-primary text-white font-semibold text-sm">추가</button>
+      </div>
+    `);
 
-    if (!['pm', 'intern', 'member'].includes(role)) {
-      alert('올바른 역할을 입력하세요 (pm, intern, member)');
-      return;
-    }
+    document.getElementById('m-cancel').onclick = () => Helpers.closeModal();
+    document.getElementById('m-submit').onclick = async () => {
+      const name = document.getElementById('m-member-name').value.trim();
+      const role = document.querySelector('input[name="m-member-role"]:checked')?.value || 'member';
+      const color = document.getElementById('m-member-color').value;
 
+      if (!name) { alert('이름을 입력해주세요.'); return; }
+
+      Helpers.closeModal();
+      try {
+        await this.apiClient.createMember({ name, role, color, is_active: true });
+        await this.render(this.container);
+      } catch (error) {
+        alert('팀원 추가 실패: ' + error.message);
+      }
+    };
+  }
+
+  /**
+   * 팀원 삭제
+   */
+  async deleteMember(memberId) {
+    const member = this.members.find(m => m.id === memberId);
+    if (!member) return;
+    if (!confirm(`"${member.name}" 팀원을 삭제하시겠습니까?\n\n담당 Thread가 있는 경우 할당이 해제됩니다.`)) return;
     try {
-      await this.apiClient.createMember({
-        id: `member-${Date.now()}`,
-        name,
-        role
-      });
-
+      await this.apiClient.deleteMember(memberId);
       await this.render(this.container);
-      alert('팀원이 추가되었습니다.');
     } catch (error) {
-      alert('팀원 추가 실패: ' + error.message);
+      alert('팀원 삭제 실패: ' + error.message);
     }
   }
 

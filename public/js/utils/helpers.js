@@ -193,6 +193,29 @@ const Helpers = {
     return map[role] || role;
   },
 
+  // ========== 모달 ==========
+
+  showModal(contentHtml) {
+    const modal = document.getElementById('global-modal');
+    document.getElementById('modal-content').innerHTML = contentHtml;
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    // ESC 키로 닫기
+    const onKey = (e) => {
+      if (e.key === 'Escape') { this.closeModal(); document.removeEventListener('keydown', onKey); }
+    };
+    document.addEventListener('keydown', onKey);
+    // 배경 클릭으로 닫기
+    modal.onclick = (e) => { if (e.target === modal) this.closeModal(); };
+  },
+
+  closeModal() {
+    const modal = document.getElementById('global-modal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    modal.onclick = null;
+  },
+
   // ========== 상태 뱃지 ==========
 
   /**
