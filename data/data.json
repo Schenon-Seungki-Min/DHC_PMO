@@ -1,0 +1,417 @@
+{
+  "projects": [
+    {
+      "id": "proj-001",
+      "name": "슬립큐 비대면 확장",
+      "objective": "비대면 플랫폼 연동 및 마진구조 세팅",
+      "status": "active",
+      "created_at": "2025-01-05T00:00:00Z",
+      "updated_at": "2025-02-07T00:00:00Z"
+    },
+    {
+      "id": "proj-002",
+      "name": "슬립큐 대면 확장",
+      "objective": "병원 타깃 전략 및 EMR 연동",
+      "status": "active",
+      "created_at": "2025-01-05T00:00:00Z",
+      "updated_at": "2025-02-07T00:00:00Z"
+    },
+    {
+      "id": "proj-003",
+      "name": "슬립큐 인지도 제고",
+      "objective": "PR 캠페인 기획 및 트렌드 조사",
+      "status": "active",
+      "created_at": "2025-01-10T00:00:00Z",
+      "updated_at": "2025-02-07T00:00:00Z"
+    }
+  ],
+  "threads": [
+    {
+      "id": "thread-001",
+      "project_id": "proj-002",
+      "title": "EMR사 소통",
+      "thread_type": "negotiation",
+      "start_date": "2025-01-05",
+      "due_date": "2025-02-15",
+      "status": "active",
+      "outcome_goal": "EMR 연동 계약 체결",
+      "created_at": "2025-01-05T00:00:00Z",
+      "updated_at": "2025-02-07T00:00:00Z"
+    },
+    {
+      "id": "thread-002",
+      "project_id": "proj-002",
+      "title": "병원 타깃 전략",
+      "thread_type": "execution",
+      "start_date": "2025-01-25",
+      "due_date": "2025-02-08",
+      "status": "active",
+      "outcome_goal": "타깃 병원 리스트 및 접근 전략 수립",
+      "created_at": "2025-01-25T00:00:00Z",
+      "updated_at": "2025-02-07T00:00:00Z"
+    },
+    {
+      "id": "thread-003",
+      "project_id": "proj-002",
+      "title": "외부 협력사 소통",
+      "thread_type": "negotiation",
+      "start_date": "2025-01-28",
+      "due_date": "2025-02-04",
+      "status": "active",
+      "outcome_goal": "협력사와 계약 체결",
+      "created_at": "2025-01-28T00:00:00Z",
+      "updated_at": "2025-02-07T00:00:00Z"
+    },
+    {
+      "id": "thread-004",
+      "project_id": "proj-003",
+      "title": "트렌드 조사",
+      "thread_type": "execution",
+      "start_date": "2025-01-20",
+      "due_date": "2025-02-06",
+      "status": "active",
+      "outcome_goal": "업계 트렌드 분석 보고서",
+      "created_at": "2025-01-20T00:00:00Z",
+      "updated_at": "2025-02-07T00:00:00Z"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task-001",
+      "thread_id": "thread-001",
+      "title": "1차 미팅",
+      "assigned_to": "member-001",
+      "start_date": "2025-01-10",
+      "due_date": "2025-01-15",
+      "status": "completed",
+      "completed_at": "2025-01-15T00:00:00Z",
+      "priority": "high",
+      "notes": "",
+      "created_at": "2025-01-10T00:00:00Z",
+      "updated_at": "2025-01-15T00:00:00Z"
+    },
+    {
+      "id": "task-002",
+      "thread_id": "thread-001",
+      "title": "컨택포인트 확보",
+      "assigned_to": "member-001",
+      "start_date": "2025-01-16",
+      "due_date": "2025-01-18",
+      "status": "completed",
+      "completed_at": "2025-01-18T00:00:00Z",
+      "priority": "high",
+      "notes": "",
+      "created_at": "2025-01-16T00:00:00Z",
+      "updated_at": "2025-01-18T00:00:00Z"
+    },
+    {
+      "id": "task-003",
+      "thread_id": "thread-001",
+      "title": "견적서 검토",
+      "assigned_to": "member-002",
+      "start_date": "2025-02-01",
+      "due_date": "2025-02-08",
+      "status": "in_progress",
+      "priority": "high",
+      "notes": "",
+      "created_at": "2025-02-01T00:00:00Z",
+      "updated_at": "2025-02-07T00:00:00Z"
+    },
+    {
+      "id": "task-004",
+      "thread_id": "thread-001",
+      "title": "계약서 초안 검토",
+      "assigned_to": null,
+      "start_date": null,
+      "due_date": "2025-02-13",
+      "status": "pending",
+      "priority": "medium",
+      "notes": "",
+      "created_at": "2025-02-01T00:00:00Z",
+      "updated_at": "2025-02-01T00:00:00Z"
+    },
+    {
+      "id": "task-005",
+      "thread_id": "thread-001",
+      "title": "법무팀 승인 요청",
+      "assigned_to": null,
+      "start_date": null,
+      "due_date": "2025-02-15",
+      "status": "pending",
+      "priority": "medium",
+      "notes": "",
+      "created_at": "2025-02-01T00:00:00Z",
+      "updated_at": "2025-02-01T00:00:00Z"
+    },
+    {
+      "id": "task-006",
+      "thread_id": "thread-001",
+      "title": "최종 계약 체결",
+      "assigned_to": null,
+      "start_date": null,
+      "due_date": "2025-02-15",
+      "status": "pending",
+      "priority": "high",
+      "notes": "",
+      "created_at": "2025-02-01T00:00:00Z",
+      "updated_at": "2025-02-01T00:00:00Z"
+    }
+  ],
+  "team_members": [
+    {
+      "id": "member-001",
+      "name": "코리",
+      "role": "pm",
+      "color": "#374151",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z"
+    },
+    {
+      "id": "member-002",
+      "name": "인턴A",
+      "role": "intern",
+      "color": "#3B82F6",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z"
+    },
+    {
+      "id": "member-003",
+      "name": "인턴B",
+      "role": "intern",
+      "color": "#8B5CF6",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z"
+    },
+    {
+      "id": "member-004",
+      "name": "김팀원",
+      "role": "member",
+      "color": "#10B981",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z"
+    }
+  ],
+  "thread_assignments": [
+    {
+      "id": "assign-001",
+      "thread_id": "thread-001",
+      "member_id": "member-001",
+      "role": "lead",
+      "grabbed_at": "2025-01-05T00:00:00Z",
+      "released_at": "2025-01-20T00:00:00Z",
+      "note": "인턴A에게 인계"
+    },
+    {
+      "id": "assign-002",
+      "thread_id": "thread-001",
+      "member_id": "member-002",
+      "role": "lead",
+      "grabbed_at": "2025-01-20T00:00:00Z",
+      "released_at": null,
+      "note": ""
+    },
+    {
+      "id": "assign-003",
+      "thread_id": "thread-001",
+      "member_id": "member-001",
+      "role": "support",
+      "grabbed_at": "2025-02-01T00:00:00Z",
+      "released_at": null,
+      "note": "support로 재합류"
+    },
+    {
+      "id": "assign-004",
+      "thread_id": "thread-002",
+      "member_id": "member-001",
+      "role": "lead",
+      "grabbed_at": "2025-01-25T00:00:00Z",
+      "released_at": null,
+      "note": ""
+    },
+    {
+      "id": "assign-005",
+      "thread_id": "thread-003",
+      "member_id": "member-003",
+      "role": "lead",
+      "grabbed_at": "2025-01-28T00:00:00Z",
+      "released_at": null,
+      "note": ""
+    },
+    {
+      "id": "assign-006",
+      "thread_id": "thread-004",
+      "member_id": "member-002",
+      "role": "lead",
+      "grabbed_at": "2025-01-20T00:00:00Z",
+      "released_at": null,
+      "note": ""
+    },
+    {
+      "id": "assign-007",
+      "thread_id": "thread-004",
+      "member_id": "member-003",
+      "role": "support",
+      "grabbed_at": "2025-01-22T00:00:00Z",
+      "released_at": null,
+      "note": ""
+    },
+    {
+      "id": "assign-008",
+      "thread_id": "thread-004",
+      "member_id": "member-004",
+      "role": "support",
+      "grabbed_at": "2025-01-25T00:00:00Z",
+      "released_at": null,
+      "note": ""
+    }
+  ],
+  "stakeholders": [
+    {
+      "id": "stake-001",
+      "name": "EMR업체",
+      "type": "external",
+      "organization": "EMR Corp",
+      "department": "영업팀",
+      "contact_info": "contact@emr.com",
+      "created_at": "2025-01-05T00:00:00Z"
+    },
+    {
+      "id": "stake-002",
+      "name": "법무팀",
+      "type": "internal",
+      "organization": "DHC",
+      "department": "법무",
+      "contact_info": "legal@dhc.com",
+      "created_at": "2025-01-05T00:00:00Z"
+    }
+  ],
+  "thread_stakeholders": [
+    {
+      "thread_id": "thread-001",
+      "stakeholder_id": "stake-001",
+      "role_type": "counterpart"
+    },
+    {
+      "thread_id": "thread-001",
+      "stakeholder_id": "stake-002",
+      "role_type": "approver"
+    }
+  ],
+  "thread_templates": [
+    {
+      "id": "template-001",
+      "name": "웨비나 진행",
+      "thread_type": "execution",
+      "description": "웨비나 준비 및 진행 표준 프로세스",
+      "created_at": "2025-01-01T00:00:00Z"
+    },
+    {
+      "id": "template-002",
+      "name": "협력사 소통",
+      "thread_type": "negotiation",
+      "description": "외부 협력사와의 계약 및 소통 프로세스",
+      "created_at": "2025-01-01T00:00:00Z"
+    }
+  ],
+  "template_tasks": [
+    {
+      "id": "tt-001",
+      "template_id": "template-001",
+      "title": "웨비나 주제 선정 및 승인",
+      "day_offset": -30,
+      "priority": "high",
+      "order": 1,
+      "notes": "마감 30일 전까지 주제 확정"
+    },
+    {
+      "id": "tt-002",
+      "template_id": "template-001",
+      "title": "발표자료 초안 작성",
+      "day_offset": -14,
+      "priority": "high",
+      "order": 2,
+      "notes": "마감 14일 전"
+    },
+    {
+      "id": "tt-003",
+      "template_id": "template-001",
+      "title": "발표자료 리뷰 및 수정",
+      "day_offset": -7,
+      "priority": "high",
+      "order": 3,
+      "notes": "마감 7일 전"
+    },
+    {
+      "id": "tt-004",
+      "template_id": "template-001",
+      "title": "웨비나 홍보",
+      "day_offset": -5,
+      "priority": "medium",
+      "order": 4,
+      "notes": "SNS, 이메일 홍보"
+    },
+    {
+      "id": "tt-005",
+      "template_id": "template-001",
+      "title": "리허설",
+      "day_offset": -1,
+      "priority": "high",
+      "order": 5,
+      "notes": "전날 리허설 진행"
+    },
+    {
+      "id": "tt-006",
+      "template_id": "template-001",
+      "title": "웨비나 진행",
+      "day_offset": 0,
+      "priority": "high",
+      "order": 6,
+      "notes": "당일 진행"
+    },
+    {
+      "id": "tt-007",
+      "template_id": "template-002",
+      "title": "협력사 선정 및 1차 컨택",
+      "day_offset": -21,
+      "priority": "high",
+      "order": 1,
+      "notes": "마감 3주 전"
+    },
+    {
+      "id": "tt-008",
+      "template_id": "template-002",
+      "title": "미팅 및 제안서 검토",
+      "day_offset": -14,
+      "priority": "high",
+      "order": 2,
+      "notes": "마감 2주 전"
+    },
+    {
+      "id": "tt-009",
+      "template_id": "template-002",
+      "title": "계약서 초안 작성",
+      "day_offset": -7,
+      "priority": "high",
+      "order": 3,
+      "notes": "마감 1주 전"
+    },
+    {
+      "id": "tt-010",
+      "template_id": "template-002",
+      "title": "법무 검토",
+      "day_offset": -3,
+      "priority": "medium",
+      "order": 4,
+      "notes": "마감 3일 전"
+    },
+    {
+      "id": "tt-011",
+      "template_id": "template-002",
+      "title": "최종 계약 체결",
+      "day_offset": 0,
+      "priority": "high",
+      "order": 5,
+      "notes": "마감일"
+    }
+  ]
+}
