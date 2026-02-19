@@ -94,7 +94,7 @@ class ThreadDetailView {
                 ${this.renderThreadTypeBadge(this.currentThread.thread_type)}
                 ${this.renderStatusBadge(this.currentThread.status)}
               </div>
-              <p class="text-gray-600 font-medium">${Helpers.escapeHtml(this.currentThread.objective)}</p>
+              <p class="text-gray-600 font-medium">${Helpers.escapeHtml(this.currentThread.outcome_goal || '목표 없음')}</p>
             </div>
             <div class="card-modern p-4 text-center bg-gradient-to-br from-gray-50 to-white border-2">
               <div class="text-3xl font-black text-gray-900">D-${dDay}</div>
@@ -204,7 +204,7 @@ class ThreadDetailView {
     }
 
     return this.threadStakeholders.map(ts => {
-      const stakeholder = this.stakeholders.find(s => s.id === ts.stakeholder_id);
+      const stakeholder = this.stakeholders.find(s => s.id === ts.id);
       if (!stakeholder) return '';
 
       const roleColor = ts.role_type === 'counterpart' ? 'orange' : 'green';
@@ -320,17 +320,24 @@ class ThreadDetailView {
 
     return `
       <div class="p-4 border-2 rounded-xl bg-gray-50 opacity-70">
-        <div class="flex items-start gap-3">
-          <span class="text-green-600 text-xl mt-0.5">✓</span>
-          <div class="flex-1">
-            <div class="line-through text-gray-500 font-medium">${Helpers.escapeHtml(task.title)}</div>
-            ${assignee ? `
-              <div class="flex items-center gap-2 text-xs text-gray-500 mt-1">
-                <span class="w-2.5 h-2.5 rounded-full ${Helpers.getMemberDotClass(assignee.role)} shadow-sm"></span>
-                <span class="font-medium">${Helpers.escapeHtml(assignee.name)} · ${Helpers.formatDate(task.completed_at)} 완료</span>
-              </div>
-            ` : ''}
+        <div class="flex items-start justify-between gap-3">
+          <div class="flex items-start gap-3 flex-1">
+            <span class="text-green-600 text-xl mt-0.5">✓</span>
+            <div class="flex-1">
+              <div class="line-through text-gray-500 font-medium">${Helpers.escapeHtml(task.title)}</div>
+              ${assignee ? `
+                <div class="flex items-center gap-2 text-xs text-gray-500 mt-1">
+                  <span class="w-2.5 h-2.5 rounded-full ${Helpers.getMemberDotClass(assignee.role)} shadow-sm"></span>
+                  <span class="font-medium">${Helpers.escapeHtml(assignee.name)} · ${Helpers.formatDate(task.completed_at)} 완료</span>
+                </div>
+              ` : ''}
+            </div>
           </div>
+          <button class="btn-delete-task text-red-600 hover:text-red-800 p-1 hover:bg-red-50 rounded transition" data-task-id="${task.id}" title="삭제">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+            </svg>
+          </button>
         </div>
       </div>
     `;
@@ -360,7 +367,14 @@ class ThreadDetailView {
           </div>
           <div class="flex flex-col gap-1 items-end">
             ${Helpers.renderDDayBadge(dDay)}
-            <button class="btn-complete-task text-xs text-green-600 hover:text-green-700 font-semibold" data-task-id="${task.id}">완료</button>
+            <div class="flex gap-2 items-center">
+              <button class="btn-complete-task text-xs text-green-600 hover:text-green-700 font-semibold" data-task-id="${task.id}">완료</button>
+              <button class="btn-delete-task text-red-600 hover:text-red-800 p-1 hover:bg-red-50 rounded transition" data-task-id="${task.id}" title="삭제">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -383,7 +397,14 @@ class ThreadDetailView {
               <div class="text-xs text-gray-500 mt-1">미배정</div>
             </div>
           </div>
-          ${Helpers.renderDDayBadge(dDay)}
+          <div class="flex gap-2 items-center">
+            ${Helpers.renderDDayBadge(dDay)}
+            <button class="btn-delete-task text-red-600 hover:text-red-800 p-1 hover:bg-red-50 rounded transition" data-task-id="${task.id}" title="삭제">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     `;
@@ -475,6 +496,15 @@ class ThreadDetailView {
       btn.addEventListener('click', () => {
         const taskId = btn.dataset.taskId;
         this.completeTask(taskId);
+      });
+    });
+
+    // Task 삭제
+    document.querySelectorAll('.btn-delete-task').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const taskId = btn.dataset.taskId;
+        this.deleteTask(taskId);
       });
     });
   }
@@ -607,6 +637,20 @@ class ThreadDetailView {
       alert('Task가 완료되었습니다.');
     } catch (error) {
       alert('Task 완료 실패: ' + error.message);
+    }
+  }
+
+  async deleteTask(taskId) {
+    const task = this.tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    if (!confirm(`"${task.title}" Task를 삭제하시겠습니까?`)) return;
+
+    try {
+      await this.apiClient.deleteTask(taskId);
+      await this.render(this.container, this.currentThread, this.currentProject);
+    } catch (error) {
+      alert('Task 삭제 실패: ' + error.message);
     }
   }
 

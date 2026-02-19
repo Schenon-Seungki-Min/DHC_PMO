@@ -4,12 +4,13 @@
  */
 
 class ThreadBar {
-  constructor(thread, assignments, members, timelineStart, timelineEnd) {
+  constructor(thread, assignments, members, timelineStart, timelineEnd, project = null) {
     this.thread = thread;
     this.assignments = assignments;
     this.members = members;
     this.timelineStart = timelineStart;
     this.timelineEnd = timelineEnd;
+    this.project = project;
   }
 
   render() {
@@ -22,7 +23,10 @@ class ThreadBar {
       <div class="grid grid-cols-5 gap-2 items-center cursor-pointer thread-bar-container"
            data-thread-id="${this.thread.id}">
         <div class="pr-2">
-          <div class="text-sm font-semibold text-gray-800 truncate">${Helpers.escapeHtml(this.thread.title)}</div>
+          <div class="text-sm font-semibold text-gray-800 truncate">
+            ${Helpers.escapeHtml(this.thread.title)}
+            ${this.project ? `<span class="ml-1 text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded font-medium">${Helpers.escapeHtml(this.project.name)}</span>` : ''}
+          </div>
           <div class="text-xs text-gray-500 mt-0.5">${Helpers.escapeHtml(assigneeNames)}</div>
         </div>
         <div class="col-span-4 relative h-14">
