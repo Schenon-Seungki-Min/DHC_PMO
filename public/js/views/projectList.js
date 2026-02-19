@@ -70,6 +70,11 @@ class ProjectListView {
             </div>
             <p class="text-sm text-gray-600 leading-relaxed">${Helpers.escapeHtml(project.objective)}</p>
           </div>
+          <button class="btn-delete-project text-red-600 hover:text-red-800 p-2 hover:bg-red-50 rounded transition" data-project-id="${project.id}" title="삭제">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+            </svg>
+          </button>
         </div>
         <div class="flex flex-wrap gap-4 mt-4 pt-4 border-t border-gray-100 text-sm">
           <span class="text-gray-600">Thread <strong class="font-bold text-gray-900">${stats.threadCount || 0}</strong>개</span>
@@ -82,9 +87,22 @@ class ProjectListView {
 
   attachEventListeners(projects) {
     document.querySelectorAll('.project-card').forEach(card => {
-      card.addEventListener('click', () => {
+      card.addEventListener('click', (e) => {
+        // 삭제 버튼 클릭 시 프로젝트 열기 방지
+        if (e.target.closest('.btn-delete-project')) return;
+
         const project = projects.find(p => p.id === card.dataset.projectId);
         if (project) window.app.showTimeline(project);
+      });
+    });
+
+    // 삭제 버튼
+    document.querySelectorAll('.btn-delete-project').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const projectId = btn.dataset.projectId;
+        const project = projects.find(p => p.id === projectId);
+        if (project) this.deleteProject(project);
       });
     });
 
@@ -111,6 +129,18 @@ class ProjectListView {
       await this.render(this.container);
     } catch (error) {
       alert('프로젝트 생성에 실패했습니다: ' + error.message);
+    }
+  }
+
+  async deleteProject(project) {
+    const confirm = window.confirm(`"${project.name}" 프로젝트를 삭제하시겠습니까?\n\n관련된 모든 Thread와 Task도 함께 삭제됩니다.`);
+    if (!confirm) return;
+
+    try {
+      await this.apiClient.deleteProject(project.id);
+      await this.render(this.container);
+    } catch (error) {
+      alert('프로젝트 삭제에 실패했습니다: ' + error.message);
     }
   }
 }

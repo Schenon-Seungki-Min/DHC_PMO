@@ -50,9 +50,14 @@ class TimelineView {
    * 데이터 로드
    */
   async loadData() {
-    // 프로젝트의 Thread 로드
+    // 모든 프로젝트 로드
+    this.projects = await this.apiClient.getAllProjects();
+
+    // Thread 로드 (프로젝트 선택 시 필터링)
     const allThreads = await this.apiClient.getAllThreads();
-    this.threads = allThreads.filter(t => t.project_id === this.currentProject.id);
+    this.threads = this.currentProject
+      ? allThreads.filter(t => t.project_id === this.currentProject.id)
+      : allThreads; // 전체 프로젝트 Thread 표시
 
     // 팀원 로드
     this.members = await this.apiClient.getAllMembers();
@@ -172,7 +177,8 @@ class TimelineView {
 
     return this.threads.map(thread => {
       const threadAssignments = this.assignments[thread.id] || [];
-      const bar = new ThreadBar(thread, threadAssignments, this.members, timelineStart, timelineEnd);
+      const project = this.projects.find(p => p.id === thread.project_id);
+      const bar = new ThreadBar(thread, threadAssignments, this.members, timelineStart, timelineEnd, project);
       return bar.render();
     }).join('');
   }

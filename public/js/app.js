@@ -24,7 +24,7 @@ class App {
     console.log('🚀 DHC_PMO App initialized');
 
     // 초기 뷰 렌더링
-    await this.showView('projects');
+    await this.showView('timeline');
 
     // 탭 네비게이션 이벤트 리스너
     this.setupNavigation();
