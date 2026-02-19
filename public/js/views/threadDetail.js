@@ -348,7 +348,7 @@ class ThreadDetailView {
    * 완료된 Task 렌더링
    */
   renderCompletedTask(task) {
-    const assignee = task.assigned_to ? this.members.find(m => m.id === task.assigned_to) : null;
+    const assignee = task.assignee_id ? this.members.find(m => m.id === task.assignee_id) : null;
     const notes = task.notes ? Helpers.escapeHtml(task.notes.slice(0, 30)) : '';
 
     return `
@@ -377,7 +377,7 @@ class ThreadDetailView {
    * 진행중 Task 렌더링
    */
   renderInProgressTask(task) {
-    const assignee = task.assigned_to ? this.members.find(m => m.id === task.assigned_to) : null;
+    const assignee = task.assignee_id ? this.members.find(m => m.id === task.assignee_id) : null;
     const dDay = Helpers.calculateDDay(task.due_date);
     const notes = task.notes ? Helpers.escapeHtml(task.notes.slice(0, 30)) : '';
 
@@ -414,7 +414,7 @@ class ThreadDetailView {
    * 대기/미배정 Task 렌더링
    */
   renderPendingTask(task) {
-    const assignee = task.assigned_to ? this.members.find(m => m.id === task.assigned_to) : null;
+    const assignee = task.assignee_id ? this.members.find(m => m.id === task.assignee_id) : null;
     const dDay = Helpers.calculateDDay(task.due_date);
     const notes = task.notes ? Helpers.escapeHtml(task.notes.slice(0, 30)) : '';
 
@@ -754,7 +754,7 @@ class ThreadDetailView {
         await this.apiClient.createTask({
           thread_id: this.currentThread.id,
           title,
-          assigned_to: assigneeId || null,
+          assignee_id: assigneeId || null,
           due_date: dueDate,
           status: assigneeId ? 'in_progress' : 'pending',
           notes
@@ -775,7 +775,7 @@ class ThreadDetailView {
 
     const memberOptions = `<option value="">미배정</option>` +
       this.members.map(m =>
-        `<option value="${m.id}" ${m.id === task.assigned_to ? 'selected' : ''}>${Helpers.escapeHtml(m.name)}</option>`
+        `<option value="${m.id}" ${m.id === task.assignee_id ? 'selected' : ''}>${Helpers.escapeHtml(m.name)}</option>`
       ).join('');
 
     const statusOptions = [
@@ -839,7 +839,7 @@ class ThreadDetailView {
 
       if (!title) { alert('제목을 입력해주세요.'); return; }
 
-      const updates = { title, due_date: dueDate, assigned_to: assigneeId || null, status, notes };
+      const updates = { title, due_date: dueDate, assignee_id: assigneeId || null, status, notes };
       if (status === 'completed' && task.status !== 'completed') {
         updates.completed_at = new Date().toISOString();
       }
