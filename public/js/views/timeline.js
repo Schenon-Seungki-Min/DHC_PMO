@@ -432,8 +432,10 @@ class TimelineView {
       Helpers.closeModal();
       try {
         await this.apiClient.createThread({
+          id: `thread-${Date.now()}`,
           title,
           project_id: projectId,
+          thread_type: 'execution',
           start_date: startDate || null,
           due_date: dueDate,
           outcome_goal: outcomeGoal || null,

@@ -743,6 +743,7 @@ class ThreadDetailView {
       Helpers.closeModal();
       try {
         await this.apiClient.createTask({
+          id: `task-${Date.now()}`,
           thread_id: this.currentThread.id,
           title,
           assignee_id: assigneeId || null,
