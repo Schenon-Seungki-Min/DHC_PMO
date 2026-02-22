@@ -5,7 +5,7 @@ const REQUIRED_ENV = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'PMO_SECRET_K
 for (const key of REQUIRED_ENV) {
   if (!process.env[key]) {
     console.error(`❌ Missing required env var: ${key}`);
-    process.exit(1);
+    if (require.main === module) process.exit(1); // 로컬에서만 종료
   }
 }
 
@@ -546,8 +546,13 @@ app.post('/api/threads/from-template', async (req, res) => {
   }
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`🚀 DHC_PMO server running on http://localhost:${PORT}`);
-  console.log(`📊 API: http://localhost:${PORT}/api/health`);
-});
+// Start server (local dev)
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`🚀 DHC_PMO server running on http://localhost:${PORT}`);
+    console.log(`📊 API: http://localhost:${PORT}/api/health`);
+  });
+}
+
+// Vercel serverless export
+module.exports = app;

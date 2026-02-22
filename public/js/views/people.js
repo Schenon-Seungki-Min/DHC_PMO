@@ -178,7 +178,7 @@ class PeopleView {
     // Task 개수
     const threadIds = activeThreads.map(t => t.id);
     const memberTasks = this.tasks.filter(t =>
-      threadIds.includes(t.thread_id) && t.assigned_to === member.id
+      threadIds.includes(t.thread_id) && t.assignee_id === member.id
     );
 
     // 가장 긴급한 Thread

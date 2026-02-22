@@ -92,6 +92,7 @@ class ThreadDetailView {
                 <h2 class="text-xl md:text-2xl font-black text-gray-900">${Helpers.escapeHtml(this.currentThread.title)}</h2>
                 ${this.renderThreadTypeBadge(this.currentThread.thread_type)}
                 ${this.renderStatusBadge(this.currentThread.status)}
+                <button id="btn-change-status" class="text-xs text-gray-500 hover:text-blue-600 font-semibold px-2 py-0.5 border border-gray-300 hover:border-blue-400 rounded-lg transition">상태 변경</button>
                 <span class="text-xs text-gray-400 font-medium">${Helpers.escapeHtml(projectName)}</span>
               </div>
               <p class="text-gray-600 font-medium">${Helpers.escapeHtml(this.currentThread.outcome_goal || '목표 없음')}</p>
@@ -347,7 +348,7 @@ class ThreadDetailView {
    * 완료된 Task 렌더링
    */
   renderCompletedTask(task) {
-    const assignee = task.assigned_to ? this.members.find(m => m.id === task.assigned_to) : null;
+    const assignee = task.assignee_id ? this.members.find(m => m.id === task.assignee_id) : null;
     const notes = task.notes ? Helpers.escapeHtml(task.notes.slice(0, 30)) : '';
 
     return `
@@ -376,7 +377,7 @@ class ThreadDetailView {
    * 진행중 Task 렌더링
    */
   renderInProgressTask(task) {
-    const assignee = task.assigned_to ? this.members.find(m => m.id === task.assigned_to) : null;
+    const assignee = task.assignee_id ? this.members.find(m => m.id === task.assignee_id) : null;
     const dDay = Helpers.calculateDDay(task.due_date);
     const notes = task.notes ? Helpers.escapeHtml(task.notes.slice(0, 30)) : '';
 
@@ -413,7 +414,7 @@ class ThreadDetailView {
    * 대기/미배정 Task 렌더링
    */
   renderPendingTask(task) {
-    const assignee = task.assigned_to ? this.members.find(m => m.id === task.assigned_to) : null;
+    const assignee = task.assignee_id ? this.members.find(m => m.id === task.assignee_id) : null;
     const dDay = Helpers.calculateDDay(task.due_date);
     const notes = task.notes ? Helpers.escapeHtml(task.notes.slice(0, 30)) : '';
 
@@ -477,6 +478,12 @@ class ThreadDetailView {
       breadcrumbTimeline.addEventListener('click', () => {
         window.app.showView('timeline');
       });
+    }
+
+    // Thread 상태 변경
+    const btnChangeStatus = document.getElementById('btn-change-status');
+    if (btnChangeStatus) {
+      btnChangeStatus.addEventListener('click', () => this.showChangeStatusModal());
     }
 
     // Thread 삭제
@@ -747,7 +754,7 @@ class ThreadDetailView {
         await this.apiClient.createTask({
           thread_id: this.currentThread.id,
           title,
-          assigned_to: assigneeId || null,
+          assignee_id: assigneeId || null,
           due_date: dueDate,
           status: assigneeId ? 'in_progress' : 'pending',
           notes
@@ -768,7 +775,7 @@ class ThreadDetailView {
 
     const memberOptions = `<option value="">미배정</option>` +
       this.members.map(m =>
-        `<option value="${m.id}" ${m.id === task.assigned_to ? 'selected' : ''}>${Helpers.escapeHtml(m.name)}</option>`
+        `<option value="${m.id}" ${m.id === task.assignee_id ? 'selected' : ''}>${Helpers.escapeHtml(m.name)}</option>`
       ).join('');
 
     const statusOptions = [
@@ -832,7 +839,7 @@ class ThreadDetailView {
 
       if (!title) { alert('제목을 입력해주세요.'); return; }
 
-      const updates = { title, due_date: dueDate, assigned_to: assigneeId || null, status, notes };
+      const updates = { title, due_date: dueDate, assignee_id: assigneeId || null, status, notes };
       if (status === 'completed' && task.status !== 'completed') {
         updates.completed_at = new Date().toISOString();
       }
@@ -873,6 +880,53 @@ class ThreadDetailView {
     } catch (error) {
       alert('Task 삭제 실패: ' + error.message);
     }
+  }
+
+  /**
+   * Thread 상태 변경 모달
+   */
+  showChangeStatusModal() {
+    const statusOptions = [
+      { value: 'active',    label: '진행중',  desc: '현재 진행 중인 Thread' },
+      { value: 'on_hold',   label: '보류',    desc: '일시 중단 상태' },
+      { value: 'completed', label: '완료',    desc: '모든 작업이 끝난 상태' }
+    ];
+
+    Helpers.showModal(`
+      <h3 class="text-lg font-bold text-gray-900 mb-5">Thread 상태 변경</h3>
+      <div class="space-y-3">
+        ${statusOptions.map(s => `
+          <label class="flex items-center gap-3 cursor-pointer p-3 border-2 rounded-xl hover:border-blue-300 transition has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 ${s.value === this.currentThread.status ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}">
+            <input type="radio" name="m-thread-status" value="${s.value}" ${s.value === this.currentThread.status ? 'checked' : ''} class="accent-blue-600">
+            <div>
+              <div class="font-semibold text-gray-900">${s.label}</div>
+              <div class="text-xs text-gray-500">${s.desc}</div>
+            </div>
+          </label>
+        `).join('')}
+      </div>
+      <div class="flex gap-3 mt-6">
+        <button id="m-cancel" class="flex-1 py-2.5 rounded-xl border-2 border-gray-200 text-gray-700 font-semibold text-sm hover:bg-gray-50 transition">취소</button>
+        <button id="m-submit" class="flex-1 py-2.5 rounded-xl btn-primary text-white font-semibold text-sm">변경</button>
+      </div>
+    `);
+
+    document.getElementById('m-cancel').onclick = () => Helpers.closeModal();
+    document.getElementById('m-submit').onclick = async () => {
+      const newStatus = document.querySelector('input[name="m-thread-status"]:checked')?.value;
+      if (!newStatus || newStatus === this.currentThread.status) {
+        Helpers.closeModal();
+        return;
+      }
+      Helpers.closeModal();
+      try {
+        const updated = await this.apiClient.updateThread(this.currentThread.id, { status: newStatus });
+        this.currentThread = { ...this.currentThread, status: updated.status };
+        await this.render(this.container, this.currentThread, this.currentProject);
+      } catch (error) {
+        alert('상태 변경 실패: ' + error.message);
+      }
+    };
   }
 
   /**
