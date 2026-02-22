@@ -234,6 +234,11 @@ class PeopleView {
                 <div class="text-gray-600 font-medium">Task</div>
               </div>
             </div>
+            <button class="btn-edit-member p-2 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition" data-member-id="${member.id}" title="팀원 수정">
+              <svg class="w-4 h-4 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+              </svg>
+            </button>
             <button class="btn-delete-member p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition" data-member-id="${member.id}" title="팀원 삭제">
               <svg class="w-4 h-4 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -327,6 +332,15 @@ class PeopleView {
       btnAddMember.addEventListener('click', () => this.showAddMemberModal());
     }
 
+    // 팀원 수정
+    document.querySelectorAll('.btn-edit-member').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const member = this.members.find(m => m.id === btn.dataset.memberId);
+        if (member) this.showEditMemberModal(member);
+      });
+    });
+
     // 팀원 삭제
     document.querySelectorAll('.btn-delete-member').forEach(btn => {
       btn.addEventListener('click', (e) => {
@@ -334,6 +348,67 @@ class PeopleView {
         this.deleteMember(btn.dataset.memberId);
       });
     });
+  }
+
+  /**
+   * 팀원 수정 모달
+   */
+  showEditMemberModal(member) {
+    const colorOptions = [
+      { value: '#374151', label: '회색 (Gray)' },
+      { value: '#3B82F6', label: '파랑 (Blue)' },
+      { value: '#8B5CF6', label: '보라 (Purple)' },
+      { value: '#10B981', label: '초록 (Green)' },
+      { value: '#F59E0B', label: '노랑 (Amber)' },
+      { value: '#EF4444', label: '빨강 (Red)' }
+    ].map(c => `<option value="${c.value}" ${c.value === member.color ? 'selected' : ''}>${c.label}</option>`).join('');
+
+    Helpers.showModal(`
+      <h3 class="text-lg font-bold text-gray-900 mb-5">팀원 수정</h3>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">이름 <span class="text-red-500">*</span></label>
+          <input type="text" id="m-edit-member-name" value="${Helpers.escapeHtml(member.name)}" maxlength="20"
+            class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-400 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">역할 <span class="text-red-500">*</span></label>
+          <div class="flex flex-wrap gap-3">
+            ${['pm', 'member', 'intern'].map(r => `
+              <label class="flex items-center gap-2 cursor-pointer px-4 py-2 border-2 rounded-xl hover:border-blue-300 transition has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 ${member.role === r ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}">
+                <input type="radio" name="m-edit-member-role" value="${r}" ${member.role === r ? 'checked' : ''} class="accent-blue-600">
+                <span class="text-sm font-semibold">${r === 'pm' ? 'PM' : r === 'member' ? '팀원' : '인턴'}</span>
+              </label>
+            `).join('')}
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">색상</label>
+          <select id="m-edit-member-color" class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-400 focus:outline-none">
+            ${colorOptions}
+          </select>
+        </div>
+      </div>
+      <div class="flex gap-3 mt-6">
+        <button id="m-cancel" class="flex-1 py-2.5 rounded-xl border-2 border-gray-200 text-gray-700 font-semibold text-sm hover:bg-gray-50 transition">취소</button>
+        <button id="m-submit" class="flex-1 py-2.5 rounded-xl btn-primary text-white font-semibold text-sm">저장</button>
+      </div>
+    `);
+
+    document.getElementById('m-cancel').onclick = () => Helpers.closeModal();
+    document.getElementById('m-submit').onclick = async () => {
+      const name  = document.getElementById('m-edit-member-name').value.trim();
+      const role  = document.querySelector('input[name="m-edit-member-role"]:checked')?.value || member.role;
+      const color = document.getElementById('m-edit-member-color').value;
+      if (!name) { alert('이름을 입력해주세요.'); return; }
+      Helpers.closeModal();
+      try {
+        await this.apiClient.updateMember(member.id, { name, role, color });
+        await this.render(this.container);
+      } catch (error) {
+        alert('팀원 수정 실패: ' + error.message);
+      }
+    };
   }
 
   /**
