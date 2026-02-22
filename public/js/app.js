@@ -101,28 +101,28 @@ class App {
    * 브라우저 뒤로가기, 직접 URL 접근, navigate() 모두 이 함수로 처리
    */
   async handleHashChange() {
-    const hash = window.location.hash || '#/timeline';
+    const hash = window.location.hash || '#/projects';
     const path = hash.replace(/^#\/?/, '');        // '#/thread/xxx' → 'thread/xxx'
     const [section, id] = path.split('/');
 
     if (section === 'thread' && id) {
       await this._resolveAndShowThread(id);
-    } else if (section === 'projects') {
-      this._switchView('projects');
-      this._activateTab('projects');
-      await this.views.projects.render(document.getElementById('view-projects'));
-    } else if (section === 'people') {
-      this._switchView('people');
-      this._activateTab('people');
-      await this.views.people.render(document.getElementById('view-people'));
-    } else {
-      // timeline (default)
+    } else if (section === 'timeline') {
       this._switchView('timeline');
       this._activateTab('timeline');
       await this.views.timeline.render(
         document.getElementById('view-timeline'),
         this.currentProject   // null이면 "프로젝트를 선택해주세요" 상태
       );
+    } else if (section === 'people') {
+      this._switchView('people');
+      this._activateTab('people');
+      await this.views.people.render(document.getElementById('view-people'));
+    } else {
+      // projects (default)
+      this._switchView('projects');
+      this._activateTab('projects');
+      await this.views.projects.render(document.getElementById('view-projects'));
     }
   }
 
