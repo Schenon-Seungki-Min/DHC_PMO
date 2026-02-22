@@ -472,7 +472,7 @@ class PeopleView {
 
       Helpers.closeModal();
       try {
-        await this.apiClient.createMember({ name, role, color, is_active: true });
+        await this.apiClient.createMember({ id: `member-${Date.now()}`, name, role, color, is_active: true });
         await this.render(this.container);
       } catch (error) {
         alert('팀원 추가 실패: ' + error.message);
