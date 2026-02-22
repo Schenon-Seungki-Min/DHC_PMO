@@ -78,8 +78,8 @@ class ThreadBar {
   }
 
   /**
-   * 다중 담당자를 세로 스트라이프로 렌더링
-   * 각 담당자가 얇은 세로 줄무늬로 병렬 표시됨
+   * 다중 담당자를 수평 밴드(위/아래)로 렌더링
+   * 동시 담당 시 겹치는 형태로 표현
    */
   renderMemberStripes() {
     if (this.assignments.length === 0) {
@@ -106,7 +106,7 @@ class ThreadBar {
     });
 
     if (uniqueMembers.length === 1) {
-      // 단일 담당자: 기존처럼 전체 채움
+      // 단일 담당자: 전체 채움
       const { member, role } = uniqueMembers[0];
       const displayName = role === 'lead' ? member.name : member.name.charAt(0);
       return `
@@ -116,18 +116,20 @@ class ThreadBar {
       `;
     }
 
-    // 다중 담당자: 세로 스트라이프
-    const stripeWidth = 100 / uniqueMembers.length;
-    return uniqueMembers.map(({ member, role }) => {
-      const initial = member.name.charAt(0);
+    // 다중 담당자: 수평 밴드 (위/아래로 쌓아서 동시 담당 표현)
+    const bandHeight = 100 / uniqueMembers.length;
+    const bands = uniqueMembers.map(({ member, role }) => {
+      const label = `${member.name.charAt(0)} ${role === 'lead' ? '(L)' : ''}`.trim();
       return `
-        <div class="member-stripe ${Helpers.getMemberColorClass(member.role)}"
-             style="width: ${stripeWidth}%;"
+        <div class="member-band ${Helpers.getMemberColorClass(member.role)}"
+             style="height: ${bandHeight}%;"
              title="${Helpers.escapeHtml(member.name)} (${role})">
-          <span class="stripe-label">${Helpers.escapeHtml(initial)}</span>
+          ${Helpers.escapeHtml(label)}
         </div>
       `;
     }).join('');
+
+    return `<div class="member-bands-wrap">${bands}</div>`;
   }
 
   getAssigneeNames() {
