@@ -12,6 +12,7 @@ class TimelineView {
     this.threads = [];
     this.members = [];
     this.assignments = [];
+    this.statusFilter = 'all';
   }
 
   /**
@@ -108,6 +109,23 @@ class TimelineView {
         </div>
       </div>
 
+      <!-- Status Filter -->
+      <div class="flex flex-wrap gap-2 mb-4">
+        <span class="text-sm font-semibold text-gray-600 self-center mr-1">상태:</span>
+        ${[
+          { value: 'all',       label: '전체' },
+          { value: 'active',    label: '진행중' },
+          { value: 'on_hold',   label: '보류' },
+          { value: 'completed', label: '완료' }
+        ].map(f => `
+          <button class="filter-status-btn px-3 py-1.5 text-sm font-semibold rounded-lg border-2 transition-colors
+            ${this.statusFilter === f.value
+              ? 'border-blue-500 bg-blue-50 text-blue-700'
+              : 'border-gray-200 text-gray-600 hover:border-gray-300'}"
+            data-status="${f.value}">${f.label}</button>
+        `).join('')}
+      </div>
+
       <!-- Timeline Grid -->
       <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-6">
         <!-- Timeline (3/4) -->
@@ -170,11 +188,15 @@ class TimelineView {
    * Thread 바 렌더링
    */
   renderThreadBars(timelineStart, timelineEnd) {
-    if (this.threads.length === 0) {
-      return '<div class="text-center py-8 text-gray-500">Thread가 없습니다.</div>';
+    const filtered = this.statusFilter === 'all'
+      ? this.threads
+      : this.threads.filter(t => t.status === this.statusFilter);
+
+    if (filtered.length === 0) {
+      return '<div class="text-center py-8 text-gray-500">해당 상태의 Thread가 없습니다.</div>';
     }
 
-    return this.threads.map(thread => {
+    return filtered.map(thread => {
       const threadAssignments = this.assignments[thread.id] || [];
       const project = this.projects.find(p => p.id === thread.project_id);
       const bar = new ThreadBar(thread, threadAssignments, this.members, timelineStart, timelineEnd, project);
@@ -280,6 +302,15 @@ class TimelineView {
       btnExport.addEventListener('click', () => this.exportToExcel());
     }
 
+    // 상태 필터 버튼
+    document.querySelectorAll('.filter-status-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        this.statusFilter = btn.dataset.status;
+        this.renderUI();
+        this.attachEventListeners();
+      });
+    });
+
     // Thread 바 클릭 → Detail 뷰
     document.querySelectorAll('.thread-bar-container').forEach(el => {
       el.addEventListener('click', () => {
@@ -360,27 +391,6 @@ class TimelineView {
             class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-400 focus:outline-none">
         </div>
         ${projectSelectHtml}
-        <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-2">유형 <span class="text-red-500">*</span></label>
-          <div class="flex flex-wrap gap-2">
-            <label class="flex items-center gap-2 cursor-pointer px-3 py-2 border-2 border-gray-200 rounded-xl hover:border-blue-300 transition has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50">
-              <input type="radio" name="m-thread-type" value="negotiation" checked class="accent-blue-600">
-              <span class="text-sm font-semibold">협상</span>
-            </label>
-            <label class="flex items-center gap-2 cursor-pointer px-3 py-2 border-2 border-gray-200 rounded-xl hover:border-blue-300 transition has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50">
-              <input type="radio" name="m-thread-type" value="execution" class="accent-blue-600">
-              <span class="text-sm font-semibold">실행</span>
-            </label>
-            <label class="flex items-center gap-2 cursor-pointer px-3 py-2 border-2 border-gray-200 rounded-xl hover:border-blue-300 transition has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50">
-              <input type="radio" name="m-thread-type" value="development" class="accent-blue-600">
-              <span class="text-sm font-semibold">개발</span>
-            </label>
-            <label class="flex items-center gap-2 cursor-pointer px-3 py-2 border-2 border-gray-200 rounded-xl hover:border-blue-300 transition has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50">
-              <input type="radio" name="m-thread-type" value="research" class="accent-blue-600">
-              <span class="text-sm font-semibold">리서치</span>
-            </label>
-          </div>
-        </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="block text-sm font-semibold text-gray-700 mb-1">시작일</label>
@@ -411,7 +421,6 @@ class TimelineView {
       const projectId = this.currentProject
         ? this.currentProject.id
         : document.getElementById('m-thread-project')?.value;
-      const threadType = document.querySelector('input[name="m-thread-type"]:checked')?.value || 'execution';
       const startDate = document.getElementById('m-thread-start').value;
       const dueDate = document.getElementById('m-thread-due').value;
       const outcomeGoal = document.getElementById('m-thread-goal').value.trim();
@@ -425,7 +434,6 @@ class TimelineView {
         await this.apiClient.createThread({
           title,
           project_id: projectId,
-          thread_type: threadType,
           start_date: startDate || null,
           due_date: dueDate,
           outcome_goal: outcomeGoal || null,

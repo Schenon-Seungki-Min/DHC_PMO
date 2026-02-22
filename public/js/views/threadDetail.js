@@ -90,9 +90,9 @@ class ThreadDetailView {
             <div class="flex-1">
               <div class="flex flex-wrap items-center gap-2 mb-3">
                 <h2 class="text-xl md:text-2xl font-black text-gray-900">${Helpers.escapeHtml(this.currentThread.title)}</h2>
-                ${this.renderThreadTypeBadge(this.currentThread.thread_type)}
                 ${this.renderStatusBadge(this.currentThread.status)}
                 <button id="btn-change-status" class="text-xs text-gray-500 hover:text-blue-600 font-semibold px-2 py-0.5 border border-gray-300 hover:border-blue-400 rounded-lg transition">상태 변경</button>
+                <button id="btn-edit-thread" class="text-xs text-gray-500 hover:text-indigo-600 font-semibold px-2 py-0.5 border border-gray-300 hover:border-indigo-400 rounded-lg transition">✏️ 수정</button>
                 <span class="text-xs text-gray-400 font-medium">${Helpers.escapeHtml(projectName)}</span>
               </div>
               <p class="text-gray-600 font-medium">${Helpers.escapeHtml(this.currentThread.outcome_goal || '목표 없음')}</p>
@@ -442,21 +442,6 @@ class ThreadDetailView {
   }
 
   /**
-   * Thread Type 뱃지
-   */
-  renderThreadTypeBadge(type) {
-    const typeMap = {
-      'negotiation': { label: 'negotiation', color: 'purple' },
-      'execution':   { label: 'execution',   color: 'blue'   },
-      'development': { label: 'development', color: 'indigo' },
-      'research':    { label: 'research',    color: 'green'  }
-    };
-
-    const typeInfo = typeMap[type] || { label: type || 'unknown', color: 'gray' };
-    return `<span class="badge bg-${typeInfo.color}-100 text-${typeInfo.color}-800">${typeInfo.label}</span>`;
-  }
-
-  /**
    * Status 뱃지
    */
   renderStatusBadge(status) {
@@ -472,11 +457,11 @@ class ThreadDetailView {
    * 이벤트 리스너 등록
    */
   attachEventListeners() {
-    // Breadcrumb - Timeline으로 돌아가기
+    // Breadcrumb - Timeline으로 돌아가기 (hash 기반)
     const breadcrumbTimeline = document.getElementById('breadcrumb-timeline');
     if (breadcrumbTimeline) {
       breadcrumbTimeline.addEventListener('click', () => {
-        window.app.showView('timeline');
+        window.location.hash = '/timeline';
       });
     }
 
@@ -484,6 +469,12 @@ class ThreadDetailView {
     const btnChangeStatus = document.getElementById('btn-change-status');
     if (btnChangeStatus) {
       btnChangeStatus.addEventListener('click', () => this.showChangeStatusModal());
+    }
+
+    // Thread 수정
+    const btnEditThread = document.getElementById('btn-edit-thread');
+    if (btnEditThread) {
+      btnEditThread.addEventListener('click', () => this.showEditThreadModal());
     }
 
     // Thread 삭제
@@ -883,6 +874,72 @@ class ThreadDetailView {
   }
 
   /**
+   * Thread 수정 모달
+   */
+  showEditThreadModal() {
+    const t = this.currentThread;
+    const startVal = t.start_date ? t.start_date.split('T')[0] : '';
+    const dueVal   = t.due_date   ? t.due_date.split('T')[0]   : '';
+
+    Helpers.showModal(`
+      <h3 class="text-lg font-bold text-gray-900 mb-5">Thread 수정</h3>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">제목 <span class="text-red-500">*</span></label>
+          <input type="text" id="m-edit-thread-title" value="${Helpers.escapeHtml(t.title)}" maxlength="60"
+            class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-400 focus:outline-none">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">시작일</label>
+            <input type="date" id="m-edit-thread-start" value="${startVal}"
+              class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-400 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">마감일 <span class="text-red-500">*</span></label>
+            <input type="date" id="m-edit-thread-due" value="${dueVal}"
+              class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-400 focus:outline-none">
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">목표 / 성과 기준</label>
+          <input type="text" id="m-edit-thread-goal" value="${Helpers.escapeHtml(t.outcome_goal || '')}" maxlength="100"
+            class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-400 focus:outline-none">
+        </div>
+      </div>
+      <div class="flex gap-3 mt-6">
+        <button id="m-cancel" class="flex-1 py-2.5 rounded-xl border-2 border-gray-200 text-gray-700 font-semibold text-sm hover:bg-gray-50 transition">취소</button>
+        <button id="m-submit" class="flex-1 py-2.5 rounded-xl btn-primary text-white font-semibold text-sm">저장</button>
+      </div>
+    `);
+
+    document.getElementById('m-cancel').onclick = () => Helpers.closeModal();
+    document.getElementById('m-submit').onclick = async () => {
+      const title = document.getElementById('m-edit-thread-title').value.trim();
+      const startDate = document.getElementById('m-edit-thread-start').value;
+      const dueDate   = document.getElementById('m-edit-thread-due').value;
+      const outcomeGoal = document.getElementById('m-edit-thread-goal').value.trim();
+
+      if (!title)   { alert('제목을 입력해주세요.'); return; }
+      if (!dueDate) { alert('마감일을 선택해주세요.'); return; }
+
+      Helpers.closeModal();
+      try {
+        const updated = await this.apiClient.updateThread(this.currentThread.id, {
+          title,
+          start_date: startDate || null,
+          due_date: dueDate,
+          outcome_goal: outcomeGoal || null
+        });
+        this.currentThread = { ...this.currentThread, ...updated };
+        await this.render(this.container, this.currentThread, this.currentProject);
+      } catch (error) {
+        alert('Thread 수정 실패: ' + error.message);
+      }
+    };
+  }
+
+  /**
    * Thread 상태 변경 모달
    */
   showChangeStatusModal() {
@@ -936,7 +993,8 @@ class ThreadDetailView {
     if (!confirm(`"${this.currentThread.title}" Thread를 삭제하시겠습니까?\n\n관련 Task와 할당 기록도 함께 삭제됩니다.`)) return;
     try {
       await this.apiClient.deleteThread(this.currentThread.id);
-      window.app.showView('timeline');
+      window.app.currentThread = null;
+      window.location.hash = '/timeline';
     } catch (error) {
       alert('Thread 삭제 실패: ' + error.message);
     }
