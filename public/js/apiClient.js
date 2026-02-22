@@ -123,23 +123,6 @@ class APIClient {
     return this.request(`/api/threads/${threadId}/current-assignments`);
   }
 
-  async getThreadStakeholders(threadId) {
-    return this.request(`/api/threads/${threadId}/stakeholders`);
-  }
-
-  async addThreadStakeholder(threadId, stakeholderId, roleType) {
-    return this.request(`/api/threads/${threadId}/stakeholders`, {
-      method: 'POST',
-      body: JSON.stringify({ stakeholder_id: stakeholderId, role_type: roleType })
-    });
-  }
-
-  async removeThreadStakeholder(threadId, stakeholderId) {
-    return this.request(`/api/threads/${threadId}/stakeholders/${stakeholderId}`, {
-      method: 'DELETE'
-    });
-  }
-
   // ========== TASKS ==========
 
   async getAllTasks(filters = {}) {
@@ -198,36 +181,6 @@ class APIClient {
 
   async deleteMember(id) {
     return this.request(`/api/members/${id}`, {
-      method: 'DELETE'
-    });
-  }
-
-  // ========== STAKEHOLDERS ==========
-
-  async getAllStakeholders() {
-    return this.request('/api/stakeholders');
-  }
-
-  async getStakeholderById(id) {
-    return this.request(`/api/stakeholders/${id}`);
-  }
-
-  async createStakeholder(data) {
-    return this.request('/api/stakeholders', {
-      method: 'POST',
-      body: JSON.stringify(data)
-    });
-  }
-
-  async updateStakeholder(id, data) {
-    return this.request(`/api/stakeholders/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data)
-    });
-  }
-
-  async deleteStakeholder(id) {
-    return this.request(`/api/stakeholders/${id}`, {
       method: 'DELETE'
     });
   }

@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS threads (
   status TEXT NOT NULL DEFAULT 'in_progress'
     CHECK (status IN ('todo', 'active', 'in_progress', 'done', 'completed')),
   outcome_goal TEXT,
+  stakeholder_text TEXT DEFAULT '',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -66,26 +67,7 @@ CREATE TABLE IF NOT EXISTS thread_assignments (
   note TEXT DEFAULT ''
 );
 
--- 6. Stakeholders
-CREATE TABLE IF NOT EXISTS stakeholders (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  type TEXT CHECK (type IN ('internal', 'external')),
-  organization TEXT,
-  department TEXT,
-  contact_info TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
--- 7. Thread <-> Stakeholder 매핑
-CREATE TABLE IF NOT EXISTS thread_stakeholders (
-  thread_id TEXT NOT NULL REFERENCES threads(id) ON DELETE CASCADE,
-  stakeholder_id TEXT NOT NULL REFERENCES stakeholders(id) ON DELETE CASCADE,
-  role_type TEXT,
-  PRIMARY KEY (thread_id, stakeholder_id)
-);
-
--- 8. Thread Templates
+-- 6. Thread Templates
 CREATE TABLE IF NOT EXISTS thread_templates (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
@@ -94,7 +76,7 @@ CREATE TABLE IF NOT EXISTS thread_templates (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- 9. Template Tasks
+-- 7. Template Tasks
 CREATE TABLE IF NOT EXISTS template_tasks (
   id TEXT PRIMARY KEY,
   template_id TEXT NOT NULL REFERENCES thread_templates(id) ON DELETE CASCADE,
@@ -111,7 +93,5 @@ ALTER TABLE threads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE team_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE thread_assignments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE stakeholders ENABLE ROW LEVEL SECURITY;
-ALTER TABLE thread_stakeholders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE thread_templates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE template_tasks ENABLE ROW LEVEL SECURITY;

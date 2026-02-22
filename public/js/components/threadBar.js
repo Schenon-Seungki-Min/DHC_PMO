@@ -16,7 +16,7 @@ class ThreadBar {
   render() {
     const { left, width } = this.calculatePosition();
     const dDay = Helpers.calculateDDay(this.thread.due_date);
-    const memberSegments = this.renderMemberSegments();
+    const memberStripes = this.renderMemberStripes();
     const assigneeNames = this.getAssigneeNames();
     const status = this.thread.status || 'active';
 
@@ -49,14 +49,13 @@ class ThreadBar {
         <div class="pr-2">
           <div class="text-sm font-semibold ${s.titleClass} truncate">
             ${Helpers.escapeHtml(this.thread.title)}${s.badge}
-            ${this.project ? `<span class="ml-1 text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded font-medium">${Helpers.escapeHtml(this.project.name)}</span>` : ''}
           </div>
           <div class="text-xs text-gray-500 mt-0.5">${Helpers.escapeHtml(assigneeNames)}</div>
         </div>
         <div class="col-span-4 relative h-14">
           <div class="thread-bar absolute" style="left: ${left}; width: ${width}; top: 6px; ${s.barStyle}">
-            ${memberSegments}
-            <div class="absolute right-2 top-1/2 -translate-y-1/2">
+            ${memberStripes}
+            <div class="absolute right-2 top-1/2 -translate-y-1/2 z-10">
               ${Helpers.renderDDayBadge(dDay)}
             </div>
           </div>
@@ -78,58 +77,70 @@ class ThreadBar {
     };
   }
 
-  renderMemberSegments() {
+  /**
+   * 다중 담당자를 세로 스트라이프로 렌더링
+   * 각 담당자가 얇은 세로 줄무늬로 병렬 표시됨
+   */
+  renderMemberStripes() {
     if (this.assignments.length === 0) {
       return '<div class="remaining-segment"></div>';
     }
 
-    const sortedAssignments = [...this.assignments].sort((a, b) =>
-      new Date(a.grabbed_at) - new Date(b.grabbed_at)
-    );
-
-    const threadStart = new Date(this.thread.start_date).getTime();
-    const threadDue = new Date(this.thread.due_date).getTime();
-    const totalDuration = threadDue - threadStart;
-
-    let segments = [];
-    let currentTime = threadStart;
-
-    sortedAssignments.forEach((assignment, index) => {
-      const member = this.members.find(m => m.id === assignment.member_id);
-      if (!member) return;
-
-      const grabbedAt = new Date(assignment.grabbed_at).getTime();
-      const nextTime = index < sortedAssignments.length - 1
-        ? new Date(sortedAssignments[index + 1].grabbed_at).getTime()
-        : threadDue;
-
-      const segmentStart = Math.max(grabbedAt, currentTime);
-      const widthPercent = ((nextTime - segmentStart) / totalDuration) * 100;
-
-      if (widthPercent > 0) {
-        const displayName = assignment.role === 'lead' ? member.name : member.name.charAt(0);
-        segments.push(`
-          <div class="member-segment ${Helpers.getMemberColorClass(member.role)}" style="width: ${widthPercent}%;">
-            ${Helpers.escapeHtml(displayName)}
-          </div>
-        `);
-      }
-      currentTime = nextTime;
+    // 고유 멤버 추출 (lead 먼저)
+    const uniqueMembers = [];
+    const seen = new Set();
+    const sorted = [...this.assignments].sort((a, b) => {
+      if (a.role === 'lead' && b.role !== 'lead') return -1;
+      if (a.role !== 'lead' && b.role === 'lead') return 1;
+      return 0;
     });
 
-    if (currentTime < threadDue) {
-      const remainingPercent = ((threadDue - currentTime) / totalDuration) * 100;
-      segments.push(`<div class="remaining-segment" style="flex-grow: 0; width: ${remainingPercent}%;"></div>`);
+    sorted.forEach(assignment => {
+      if (!seen.has(assignment.member_id)) {
+        seen.add(assignment.member_id);
+        const member = this.members.find(m => m.id === assignment.member_id);
+        if (member) {
+          uniqueMembers.push({ member, role: assignment.role });
+        }
+      }
+    });
+
+    if (uniqueMembers.length === 1) {
+      // 단일 담당자: 기존처럼 전체 채움
+      const { member, role } = uniqueMembers[0];
+      const displayName = role === 'lead' ? member.name : member.name.charAt(0);
+      return `
+        <div class="member-segment ${Helpers.getMemberColorClass(member.role)}" style="width: 100%;">
+          ${Helpers.escapeHtml(displayName)}
+        </div>
+      `;
     }
 
-    return segments.join('');
+    // 다중 담당자: 세로 스트라이프
+    const stripeWidth = 100 / uniqueMembers.length;
+    return uniqueMembers.map(({ member, role }) => {
+      const initial = member.name.charAt(0);
+      return `
+        <div class="member-stripe ${Helpers.getMemberColorClass(member.role)}"
+             style="width: ${stripeWidth}%;"
+             title="${Helpers.escapeHtml(member.name)} (${role})">
+          <span class="stripe-label">${Helpers.escapeHtml(initial)}</span>
+        </div>
+      `;
+    }).join('');
   }
 
   getAssigneeNames() {
     if (this.assignments.length === 0) return '미배정';
-    return this.assignments.map(a => {
-      const member = this.members.find(m => m.id === a.member_id);
-      return member ? member.name : '?';
-    }).join(', ');
+    const names = [];
+    const seen = new Set();
+    this.assignments.forEach(a => {
+      if (!seen.has(a.member_id)) {
+        seen.add(a.member_id);
+        const member = this.members.find(m => m.id === a.member_id);
+        if (member) names.push(member.name);
+      }
+    });
+    return names.join(', ');
   }
 }
