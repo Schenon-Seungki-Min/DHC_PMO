@@ -35,6 +35,7 @@
       "due_date": "2025-02-15",
       "status": "active",
       "outcome_goal": "EMR 연동 계약 체결",
+      "stakeholder_text": "EMR업체, 법무팀",
       "created_at": "2025-01-05T00:00:00Z",
       "updated_at": "2025-02-07T00:00:00Z"
     },
@@ -263,38 +264,6 @@
       "grabbed_at": "2025-01-25T00:00:00Z",
       "released_at": null,
       "note": ""
-    }
-  ],
-  "stakeholders": [
-    {
-      "id": "stake-001",
-      "name": "EMR업체",
-      "type": "external",
-      "organization": "EMR Corp",
-      "department": "영업팀",
-      "contact_info": "contact@emr.com",
-      "created_at": "2025-01-05T00:00:00Z"
-    },
-    {
-      "id": "stake-002",
-      "name": "법무팀",
-      "type": "internal",
-      "organization": "DHC",
-      "department": "법무",
-      "contact_info": "legal@dhc.com",
-      "created_at": "2025-01-05T00:00:00Z"
-    }
-  ],
-  "thread_stakeholders": [
-    {
-      "thread_id": "thread-001",
-      "stakeholder_id": "stake-001",
-      "role_type": "counterpart"
-    },
-    {
-      "thread_id": "thread-001",
-      "stakeholder_id": "stake-002",
-      "role_type": "approver"
     }
   ],
   "thread_templates": [

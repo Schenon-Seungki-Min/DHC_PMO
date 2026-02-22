@@ -53,21 +53,10 @@ async function run() {
   }));
   await upsert('team_members', members, 'team_members');
 
-  // 3. Stakeholders
-  const stakeholders = (data.stakeholders || []).map(s => ({
-    id: s.id,
-    name: s.name,
-    type: s.type || (s.is_internal ? 'internal' : 'external'),
-    organization: s.organization || null,
-    department: s.department || null,
-    contact_info: s.contact_info || null
-  }));
-  await upsert('stakeholders', stakeholders, 'stakeholders');
-
-  // 4. Thread Templates
+  // 3. Thread Templates
   await upsert('thread_templates', data.thread_templates || [], 'thread_templates');
 
-  // 5. Threads
+  // 4. Threads
   const threads = (data.threads || []).map(t => ({
     id: t.id,
     project_id: t.project_id,
@@ -76,11 +65,12 @@ async function run() {
     start_date: t.start_date || null,
     due_date: t.due_date || null,
     status: t.status || 'in_progress',
-    outcome_goal: t.outcome_goal || null
+    outcome_goal: t.outcome_goal || null,
+    stakeholder_text: t.stakeholder_text || ''
   }));
   await upsert('threads', threads, 'threads');
 
-  // 6. Tasks (assigned_to → assignee_id 통일)
+  // 5. Tasks (assigned_to → assignee_id 통일)
   const tasks = (data.tasks || []).map(t => ({
     id: t.id,
     thread_id: t.thread_id,
@@ -94,7 +84,7 @@ async function run() {
   }));
   await upsert('tasks', tasks, 'tasks');
 
-  // 7. Thread Assignments
+  // 6. Thread Assignments
   const assignments = (data.thread_assignments || []).map(a => ({
     id: a.id,
     thread_id: a.thread_id,
@@ -106,22 +96,7 @@ async function run() {
   }));
   await upsert('thread_assignments', assignments, 'thread_assignments');
 
-  // 8. Thread Stakeholders (composite PK → upsert by both columns)
-  const tsRows = (data.thread_stakeholders || []);
-  if (tsRows.length > 0) {
-    const { error } = await supabase
-      .from('thread_stakeholders')
-      .upsert(tsRows, { onConflict: 'thread_id,stakeholder_id' });
-    if (error) {
-      console.error('  [ERROR] thread_stakeholders:', error.message);
-    } else {
-      console.log(`  [OK] thread_stakeholders: ${tsRows.length} rows`);
-    }
-  } else {
-    console.log('  [SKIP] thread_stakeholders: 0 rows');
-  }
-
-  // 9. Template Tasks
+  // 7. Template Tasks
   await upsert('template_tasks', data.template_tasks || [], 'template_tasks');
 
   console.log('\n✅ Migration complete!');

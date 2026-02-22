@@ -1,6 +1,6 @@
 /**
  * Timeline View
- * Thread 타임라인 뷰
+ * 전체 프로젝트 타임라인 뷰 (프로젝트별 그룹 헤더)
  */
 
 class TimelineView {
@@ -28,13 +28,8 @@ class TimelineView {
     }
 
     try {
-      // 데이터 로드
       await this.loadData();
-
-      // UI 렌더링
       this.renderUI();
-
-      // 이벤트 리스너 등록
       this.attachEventListeners();
     } catch (error) {
       console.error('Failed to load timeline:', error);
@@ -51,19 +46,15 @@ class TimelineView {
    * 데이터 로드
    */
   async loadData() {
-    // 모든 프로젝트 로드
     this.projects = await this.apiClient.getAllProjects();
 
-    // Thread 로드 (프로젝트 선택 시 필터링)
     const allThreads = await this.apiClient.getAllThreads();
     this.threads = this.currentProject
       ? allThreads.filter(t => t.project_id === this.currentProject.id)
-      : allThreads; // 전체 프로젝트 Thread 표시
+      : allThreads;
 
-    // 팀원 로드
     this.members = await this.apiClient.getAllMembers();
 
-    // 모든 Thread의 현재 assignment 로드
     this.assignments = {};
     for (const thread of this.threads) {
       const threadAssignments = await this.apiClient.getCurrentAssignments(thread.id);
@@ -81,9 +72,7 @@ class TimelineView {
     timelineEnd.setHours(23, 59, 59, 999);
 
     const todayPosition = this.calculateTodayPosition(timelineStart, timelineEnd);
-    const titleText = this.currentProject
-      ? Helpers.escapeHtml(this.currentProject.name)
-      : '전체 프로젝트';
+    const dayGridLines = this.renderDayGridLines(timelineStart, timelineEnd);
 
     this.container.innerHTML = `
       <!-- Header -->
@@ -91,17 +80,17 @@ class TimelineView {
         <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3">
           <div>
             <h2 class="text-xl md:text-2xl font-bold text-gray-900">Thread Timeline</h2>
-            <p class="text-sm text-gray-500 font-medium mt-0.5">${titleText}</p>
+            <p class="text-sm text-gray-500 font-medium mt-0.5">전체 프로젝트</p>
           </div>
           <div class="flex items-center gap-1 card-modern p-1 shadow-sm">
-            <button id="btn-prev-week" class="px-3 py-1.5 text-sm font-medium hover:bg-gray-100 rounded-md transition-colors">← 이전</button>
+            <button id="btn-prev-week" class="px-3 py-1.5 text-sm font-medium hover:bg-gray-100 rounded-md transition-colors">\u2190 이전</button>
             <button id="btn-today" class="px-3 py-1.5 text-sm font-semibold bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-md shadow-sm">오늘</button>
-            <button id="btn-next-week" class="px-3 py-1.5 text-sm font-medium hover:bg-gray-100 rounded-md transition-colors">다음 →</button>
+            <button id="btn-next-week" class="px-3 py-1.5 text-sm font-medium hover:bg-gray-100 rounded-md transition-colors">다음 \u2192</button>
           </div>
         </div>
         <div class="flex flex-wrap gap-2 w-full lg:w-auto">
           <button id="btn-export-excel" class="btn-success text-white px-4 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 flex-1 sm:flex-none justify-center">
-            📥 Excel 내보내기
+            Excel 내보내기
           </button>
           <button id="btn-new-thread" class="btn-primary text-white px-4 py-2.5 rounded-lg text-sm font-semibold flex-1 sm:flex-none">
             + 새 Thread
@@ -142,17 +131,20 @@ class TimelineView {
               `).join('')}
             </div>
 
-            <!-- Timeline with Today Line -->
+            <!-- Timeline with Today Line & Day Grid -->
             <div class="relative">
+              <!-- Day grid lines -->
+              ${dayGridLines}
+
               ${todayPosition !== null ? `
                 <div class="today-line" style="left: calc(20% + (80% * ${todayPosition}));">
                   <div class="today-label">TODAY</div>
                 </div>
               ` : ''}
 
-              <!-- Thread Bars -->
-              <div class="space-y-4 pt-4" id="thread-bars">
-                ${this.renderThreadBars(timelineStart, timelineEnd)}
+              <!-- Thread Bars (grouped by project) -->
+              <div class="space-y-2 pt-4" id="thread-bars">
+                ${this.renderGroupedThreadBars(timelineStart, timelineEnd)}
               </div>
             </div>
 
@@ -175,7 +167,7 @@ class TimelineView {
 
         <!-- Team Status (1/4) -->
         <div class="card-modern p-5">
-          <h3 class="font-bold text-gray-900 mb-4 flex items-center gap-2">👥 팀 현황</h3>
+          <h3 class="font-bold text-gray-900 mb-4 flex items-center gap-2">팀 현황</h3>
           <div class="space-y-4" id="team-status">
             ${this.renderTeamStatus()}
           </div>
@@ -185,9 +177,32 @@ class TimelineView {
   }
 
   /**
-   * Thread 바 렌더링
+   * 일(day) 그리드 라인 렌더링 - 연한 점선
    */
-  renderThreadBars(timelineStart, timelineEnd) {
+  renderDayGridLines(timelineStart, timelineEnd) {
+    const totalDays = (timelineEnd - timelineStart) / (1000 * 60 * 60 * 24);
+    let lines = '';
+
+    for (let i = 1; i < totalDays; i++) {
+      const position = i / totalDays;
+      const currentDate = new Date(timelineStart);
+      currentDate.setDate(currentDate.getDate() + i);
+      const dayOfWeek = currentDate.getDay(); // 0=Sun, 1=Mon
+
+      // 주 경계(월요일)는 더 진하게
+      const isWeekBoundary = dayOfWeek === 1;
+      const lineClass = isWeekBoundary ? 'day-grid-line week-grid-line' : 'day-grid-line';
+
+      lines += `<div class="${lineClass}" style="left: calc(20% + (80% * ${position}));"></div>`;
+    }
+
+    return lines;
+  }
+
+  /**
+   * 프로젝트별 그룹 헤더로 Thread 바 렌더링
+   */
+  renderGroupedThreadBars(timelineStart, timelineEnd) {
     const filtered = this.statusFilter === 'all'
       ? this.threads
       : this.threads.filter(t => t.status === this.statusFilter);
@@ -196,11 +211,43 @@ class TimelineView {
       return '<div class="text-center py-8 text-gray-500">해당 상태의 Thread가 없습니다.</div>';
     }
 
-    return filtered.map(thread => {
-      const threadAssignments = this.assignments[thread.id] || [];
-      const project = this.projects.find(p => p.id === thread.project_id);
-      const bar = new ThreadBar(thread, threadAssignments, this.members, timelineStart, timelineEnd, project);
-      return bar.render();
+    // 프로젝트별 그룹핑
+    const grouped = {};
+    filtered.forEach(thread => {
+      const pid = thread.project_id;
+      if (!grouped[pid]) grouped[pid] = [];
+      grouped[pid].push(thread);
+    });
+
+    // 프로젝트 순서대로 렌더링
+    const projectOrder = this.projects.map(p => p.id);
+    const sortedPids = Object.keys(grouped).sort((a, b) =>
+      projectOrder.indexOf(a) - projectOrder.indexOf(b)
+    );
+
+    return sortedPids.map(pid => {
+      const project = this.projects.find(p => p.id === pid);
+      const projectName = project ? project.name : '알 수 없는 프로젝트';
+      const threads = grouped[pid];
+
+      const threadBars = threads.map(thread => {
+        const threadAssignments = this.assignments[thread.id] || [];
+        const bar = new ThreadBar(thread, threadAssignments, this.members, timelineStart, timelineEnd);
+        return bar.render();
+      }).join('');
+
+      return `
+        <div class="mb-4">
+          <div class="flex items-center gap-2 mb-2 px-1">
+            <div class="w-1.5 h-5 rounded-full bg-blue-500"></div>
+            <span class="text-sm font-bold text-gray-700">${Helpers.escapeHtml(projectName)}</span>
+            <span class="text-xs text-gray-400 font-medium">${threads.length}개</span>
+          </div>
+          <div class="space-y-3">
+            ${threadBars}
+          </div>
+        </div>
+      `;
     }).join('');
   }
 
@@ -209,7 +256,6 @@ class TimelineView {
    */
   renderTeamStatus() {
     return this.members.map(member => {
-      // 멤버가 담당한 Thread 찾기
       const memberThreads = this.threads.filter(thread => {
         const threadAssignments = this.assignments[thread.id] || [];
         return threadAssignments.some(a => a.member_id === member.id);
@@ -219,7 +265,6 @@ class TimelineView {
         return '';
       }
 
-      // D-day 계산
       const threadWithDays = memberThreads.map(thread => {
         const dDay = Helpers.calculateDDay(thread.due_date);
         const assignment = (this.assignments[thread.id] || []).find(a => a.member_id === member.id);
@@ -272,31 +317,26 @@ class TimelineView {
    * 이벤트 리스너 등록
    */
   attachEventListeners() {
-    // 이전 주
     const btnPrev = document.getElementById('btn-prev-week');
     if (btnPrev) {
       btnPrev.addEventListener('click', () => this.navigateWeek(-1));
     }
 
-    // 다음 주
     const btnNext = document.getElementById('btn-next-week');
     if (btnNext) {
       btnNext.addEventListener('click', () => this.navigateWeek(1));
     }
 
-    // 오늘
     const btnToday = document.getElementById('btn-today');
     if (btnToday) {
       btnToday.addEventListener('click', () => this.goToday());
     }
 
-    // 새 Thread
     const btnNewThread = document.getElementById('btn-new-thread');
     if (btnNewThread) {
       btnNewThread.addEventListener('click', () => this.showNewThreadModal());
     }
 
-    // Excel 내보내기
     const btnExport = document.getElementById('btn-export-excel');
     if (btnExport) {
       btnExport.addEventListener('click', () => this.exportToExcel());
@@ -317,7 +357,6 @@ class TimelineView {
         const threadId = el.dataset.threadId;
         const thread = this.threads.find(t => t.id === threadId);
         if (thread) {
-          // Thread의 프로젝트를 함께 전달
           const project = this.projects ? this.projects.find(p => p.id === thread.project_id) : null;
           window.app.currentProject = project;
           window.app.showThreadDetail(thread);
@@ -335,7 +374,6 @@ class TimelineView {
       const projectTasks = allTasks.filter(t =>
         this.threads.some(th => th.id === t.thread_id)
       );
-      // null project 시 더미 프로젝트 객체 사용
       const projectForExport = this.currentProject || { name: '전체프로젝트', id: 'all' };
       excelExporter.exportProject(
         projectForExport,
@@ -372,7 +410,8 @@ class TimelineView {
   showNewThreadModal() {
     const today = new Date().toISOString().split('T')[0];
 
-    const projectSelectHtml = !this.currentProject ? `
+    // 항상 프로젝트 선택 드롭다운 표시
+    const projectSelectHtml = `
       <div>
         <label class="block text-sm font-semibold text-gray-700 mb-1">프로젝트 <span class="text-red-500">*</span></label>
         <select id="m-thread-project" class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-400 focus:outline-none">
@@ -380,7 +419,7 @@ class TimelineView {
           ${(this.projects || []).map(p => `<option value="${p.id}">${Helpers.escapeHtml(p.name)}</option>`).join('')}
         </select>
       </div>
-    ` : '';
+    `;
 
     Helpers.showModal(`
       <h3 class="text-lg font-bold text-gray-900 mb-5">새 Thread 생성</h3>
@@ -418,9 +457,7 @@ class TimelineView {
     document.getElementById('m-cancel').onclick = () => Helpers.closeModal();
     document.getElementById('m-submit').onclick = async () => {
       const title = document.getElementById('m-thread-title').value.trim();
-      const projectId = this.currentProject
-        ? this.currentProject.id
-        : document.getElementById('m-thread-project')?.value;
+      const projectId = document.getElementById('m-thread-project')?.value;
       const startDate = document.getElementById('m-thread-start').value;
       const dueDate = document.getElementById('m-thread-due').value;
       const outcomeGoal = document.getElementById('m-thread-goal').value.trim();
@@ -501,7 +538,7 @@ class TimelineView {
     today.setHours(0, 0, 0, 0);
 
     if (today < timelineStart || today > timelineEnd) {
-      return null; // 타임라인 범위 밖
+      return null;
     }
 
     const totalDays = (timelineEnd - timelineStart) / (1000 * 60 * 60 * 24);

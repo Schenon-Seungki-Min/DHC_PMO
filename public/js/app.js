@@ -2,9 +2,8 @@
  * Main App - 앱 초기화 및 hash 기반 라우팅
  *
  * Hash 규칙:
- *   #/timeline        → Timeline 뷰 (currentProject 유지)
+ *   #/timeline        → Timeline 뷰 (메인, 전체 프로젝트 그룹 헤더)
  *   #/thread/:id      → Thread Detail 뷰 (Timeline 탭 활성)
- *   #/projects        → Projects 뷰
  *   #/people          → People 뷰
  */
 
@@ -35,10 +34,9 @@ class App {
     this.currentView = null;
     this.currentProject = null;
     this.currentThread = null;
-    this._skipNextHashChange = false; // 프로그래밍 방식 hash 변경 시 이중 렌더 방지
+    this._skipNextHashChange = false;
 
     this.views = {
-      projects: new ProjectListView(this.apiClient),
       timeline: new TimelineView(this.apiClient),
       detail:   new ThreadDetailView(this.apiClient),
       people:   new PeopleView(this.apiClient)
@@ -49,7 +47,7 @@ class App {
    * 앱 초기화
    */
   async init() {
-    console.log('🚀 DHC_PMO App initialized');
+    console.log('DHC_PMO App initialized');
 
     // 탭 클릭 이벤트 등록
     this.setupNavigation();
@@ -66,12 +64,10 @@ class App {
 
   /**
    * 탭 네비게이션 등록
-   * Thread Detail 탭은 제거됨 — detail은 Timeline의 depth로 처리
    */
   setupNavigation() {
     const tabs = {
       'tab-timeline': 'timeline',
-      'tab-projects': 'projects',
       'tab-people':   'people',
     };
 
@@ -82,14 +78,12 @@ class App {
   }
 
   /**
-   * 탭/버튼 클릭으로 이동 (hash 변경 → hashchange → handleHashChange)
-   * Timeline 탭은 currentProject가 있으면 그대로 유지
+   * 탭/버튼 클릭으로 이동
    */
   navigate(section) {
     const newHash = `#/${section}`;
 
     if (window.location.hash === newHash) {
-      // 이미 같은 hash면 hashchange가 발생하지 않으므로 직접 렌더
       this.handleHashChange();
     } else {
       window.location.hash = `/${section}`;
@@ -98,40 +92,33 @@ class App {
 
   /**
    * Hash 파싱 후 뷰 렌더링
-   * 브라우저 뒤로가기, 직접 URL 접근, navigate() 모두 이 함수로 처리
    */
   async handleHashChange() {
-    const hash = window.location.hash || '#/projects';
-    const path = hash.replace(/^#\/?/, '');        // '#/thread/xxx' → 'thread/xxx'
+    const hash = window.location.hash || '#/timeline';
+    const path = hash.replace(/^#\/?/, '');
     const [section, id] = path.split('/');
 
     if (section === 'thread' && id) {
       await this._resolveAndShowThread(id);
-    } else if (section === 'timeline') {
-      this._switchView('timeline');
-      this._activateTab('timeline');
-      await this.views.timeline.render(
-        document.getElementById('view-timeline'),
-        this.currentProject   // null이면 "프로젝트를 선택해주세요" 상태
-      );
     } else if (section === 'people') {
       this._switchView('people');
       this._activateTab('people');
       await this.views.people.render(document.getElementById('view-people'));
     } else {
-      // projects (default)
-      this._switchView('projects');
-      this._activateTab('projects');
-      await this.views.projects.render(document.getElementById('view-projects'));
+      // timeline (default)
+      this._switchView('timeline');
+      this._activateTab('timeline');
+      await this.views.timeline.render(
+        document.getElementById('view-timeline'),
+        null // 항상 전체 프로젝트 (프로젝트 그룹 헤더로 분류)
+      );
     }
   }
 
   /**
    * ThreadId로 thread를 가져와서 Detail 뷰 표시
-   * (직접 URL 접근 or 뒤로가기 대응)
    */
   async _resolveAndShowThread(threadId) {
-    // 이미 메모리에 같은 thread가 있으면 재사용
     let thread = (this.currentThread?.id === threadId) ? this.currentThread : null;
 
     if (!thread) {
@@ -139,7 +126,6 @@ class App {
         thread = await this.apiClient.getThreadById(threadId);
         if (!thread) { this.navigate('timeline'); return; }
 
-        // project도 함께 로드 (직접 URL 접근 시 currentProject가 없을 수 있음)
         if (!this.currentProject || this.currentProject.id !== thread.project_id) {
           this.currentProject = await this.apiClient.getProjectById(thread.project_id);
         }
@@ -152,7 +138,7 @@ class App {
     }
 
     this._switchView('detail');
-    this._activateTab('timeline'); // detail은 Timeline의 하위 depth → Timeline 탭 활성 유지
+    this._activateTab('timeline');
     await this.views.detail.render(
       document.getElementById('view-detail'),
       thread,
@@ -163,24 +149,13 @@ class App {
   // ========== 뷰에서 호출하는 외부 진입점 ==========
 
   /**
-   * ProjectListView → Timeline으로 이동 (프로젝트 선택)
-   */
-  async showTimeline(project) {
-    this.currentProject = project;
-    this._setHash('/timeline');
-    this._switchView('timeline');
-    this._activateTab('timeline');
-    await this.views.timeline.render(document.getElementById('view-timeline'), project);
-  }
-
-  /**
    * TimelineView → Thread Detail로 이동 (thread 클릭)
    */
   async showThreadDetail(thread) {
     this.currentThread = thread;
     this._setHash(`/thread/${thread.id}`);
     this._switchView('detail');
-    this._activateTab('timeline'); // detail은 Timeline의 하위 depth
+    this._activateTab('timeline');
     await this.views.detail.render(
       document.getElementById('view-detail'),
       thread,

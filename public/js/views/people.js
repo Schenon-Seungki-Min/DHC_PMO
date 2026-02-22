@@ -1,6 +1,6 @@
 /**
  * People View
- * 팀원별 Thread 현황 + D-day 시각화
+ * 팀원별 Thread 현황 + D-day 시각화 + 외부/협력 Stakeholder 집계
  */
 
 class PeopleView {
@@ -20,13 +20,8 @@ class PeopleView {
     this.container = container;
 
     try {
-      // 데이터 로드
       await this.loadData();
-
-      // UI 렌더링
       this.renderUI();
-
-      // 이벤트 리스너 등록
       this.attachEventListeners();
     } catch (error) {
       console.error('Failed to load people view:', error);
@@ -43,16 +38,11 @@ class PeopleView {
    * 데이터 로드
    */
   async loadData() {
-    // 팀원 로드
     this.members = await this.apiClient.getAllMembers();
-
-    // Thread 로드
     this.threads = await this.apiClient.getAllThreads();
-
-    // Task 로드
     this.tasks = await this.apiClient.getAllTasks();
+    this.projects = await this.apiClient.getAllProjects();
 
-    // 각 Thread의 현재 assignment 로드
     this.assignments = {};
     for (const thread of this.threads) {
       const threadAssignments = await this.apiClient.getCurrentAssignments(thread.id);
@@ -65,6 +55,7 @@ class PeopleView {
    */
   renderUI() {
     const stats = this.calculateStats();
+    const stakeholderData = this.aggregateStakeholders();
 
     this.container.innerHTML = `
       <!-- Header -->
@@ -95,9 +86,20 @@ class PeopleView {
         </div>
       </div>
 
-      <!-- Member Cards -->
-      <div class="space-y-4" id="member-cards">
-        ${this.renderMemberCards()}
+      <!-- Two Column Layout: Team Members + Stakeholders -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+        <!-- Team Members (2/3) -->
+        <div class="lg:col-span-2 space-y-4" id="member-cards">
+          ${this.renderMemberCards()}
+        </div>
+
+        <!-- External / Collaboration Stakeholders (1/3) -->
+        <div class="card-modern p-5">
+          <h3 class="font-bold text-gray-900 mb-4 text-lg">외부 / 협력</h3>
+          <div class="space-y-4" id="stakeholder-aggregate">
+            ${this.renderStakeholderAggregate(stakeholderData)}
+          </div>
+        </div>
       </div>
     `;
   }
@@ -123,12 +125,10 @@ class PeopleView {
       const dueDate = new Date(thread.due_date);
       dueDate.setHours(0, 0, 0, 0);
 
-      // 이번주 마감
       if (dueDate >= today && dueDate <= oneWeekLater) {
         thisWeekDeadlines++;
       }
 
-      // 지연 위험 (D-1 이하)
       const dDay = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
       if (dDay <= 1) {
         urgentThreads++;
@@ -141,6 +141,62 @@ class PeopleView {
       thisWeekDeadlines,
       urgentThreads
     };
+  }
+
+  /**
+   * Thread의 stakeholder_text를 집계하여 연결된 Thread 목록과 함께 반환
+   */
+  aggregateStakeholders() {
+    const stakeholderMap = {}; // key: stakeholder name (trimmed), value: { threads: [] }
+
+    this.threads.forEach(thread => {
+      if (!thread.stakeholder_text) return;
+
+      // 콤마, 줄바꿈으로 분리
+      const names = thread.stakeholder_text.split(/[,\n]+/).map(s => s.trim()).filter(Boolean);
+      const project = this.projects ? this.projects.find(p => p.id === thread.project_id) : null;
+
+      names.forEach(name => {
+        if (!stakeholderMap[name]) {
+          stakeholderMap[name] = { threads: [] };
+        }
+        stakeholderMap[name].threads.push({
+          id: thread.id,
+          title: thread.title,
+          projectName: project ? project.name : '',
+          status: thread.status
+        });
+      });
+    });
+
+    return stakeholderMap;
+  }
+
+  /**
+   * Stakeholder 집계 렌더링
+   */
+  renderStakeholderAggregate(data) {
+    const entries = Object.entries(data);
+
+    if (entries.length === 0) {
+      return '<div class="text-sm text-gray-500 text-center py-6">등록된 Stakeholder가 없습니다.<br><span class="text-xs">Thread 상세에서 Stakeholder를 입력하면 여기에 자동 집계됩니다.</span></div>';
+    }
+
+    return entries.map(([name, info]) => {
+      return `
+        <div class="border-b border-gray-100 pb-3 last:border-b-0">
+          <div class="font-bold text-gray-800 text-sm mb-1">${Helpers.escapeHtml(name)}</div>
+          <div class="space-y-1">
+            ${info.threads.map(t => `
+              <div class="flex items-center gap-1.5 text-xs text-gray-500">
+                <span class="w-1.5 h-1.5 rounded-full ${t.status === 'active' ? 'bg-green-400' : 'bg-gray-300'}"></span>
+                <span class="truncate" title="${Helpers.escapeHtml(t.title)}">${Helpers.escapeHtml(t.title)}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }).join('');
   }
 
   /**
@@ -157,16 +213,13 @@ class PeopleView {
    * 멤버 정보 수집
    */
   getMemberInfo(member) {
-    // 멤버가 담당한 Thread 찾기
     const memberThreads = this.threads.filter(thread => {
       const threadAssignments = this.assignments[thread.id] || [];
       return threadAssignments.some(a => a.member_id === member.id);
     });
 
-    // 활성 Thread만
     const activeThreads = memberThreads.filter(t => t.status === 'active');
 
-    // Thread별 정보 (D-day, role)
     const threadInfos = activeThreads.map(thread => {
       const dDay = Helpers.calculateDDay(thread.due_date);
       const assignment = (this.assignments[thread.id] || []).find(a => a.member_id === member.id);
@@ -175,17 +228,14 @@ class PeopleView {
       return { thread, dDay, role };
     }).sort((a, b) => a.dDay - b.dDay);
 
-    // Task 개수
     const threadIds = activeThreads.map(t => t.id);
     const memberTasks = this.tasks.filter(t =>
       threadIds.includes(t.thread_id) && t.assignee_id === member.id
     );
 
-    // 가장 긴급한 Thread
     const urgentThread = threadInfos.length > 0 ? threadInfos[0] : null;
 
-    // 상태 결정
-    let status = 'normal'; // normal, warning, urgent
+    let status = 'normal';
     if (urgentThread) {
       if (urgentThread.dDay <= 1) {
         status = 'urgent';
@@ -262,9 +312,6 @@ class PeopleView {
     `;
   }
 
-  /**
-   * Thread 정보 카드
-   */
   renderThreadInfo(threadInfo, dotClass) {
     const { thread, dDay, role } = threadInfo;
 
@@ -291,32 +338,29 @@ class PeopleView {
     `;
   }
 
-  /**
-   * 상태 메시지
-   */
   renderStatusMessage(info) {
     if (info.status === 'urgent') {
       return `
         <div class="text-sm font-semibold text-red-700 bg-gradient-to-r from-red-50 to-red-100 p-3 rounded-xl border border-red-200">
-          🔥 ${Helpers.escapeHtml(info.urgentThread.thread.title)} D-${info.urgentThread.dDay} 긴급 - 오늘 중 완료 필요
+          ${Helpers.escapeHtml(info.urgentThread.thread.title)} D-${info.urgentThread.dDay} - 오늘 중 완료 필요
         </div>
       `;
     } else if (info.status === 'warning') {
       return `
         <div class="text-sm font-semibold text-orange-700 bg-gradient-to-r from-orange-50 to-orange-100 p-3 rounded-xl border border-orange-200">
-          ⚠️ ${Helpers.escapeHtml(info.urgentThread.thread.title)} D-${info.urgentThread.dDay} 촉박 - 리밸런싱 검토 필요
+          ${Helpers.escapeHtml(info.urgentThread.thread.title)} D-${info.urgentThread.dDay} 촉박 - 리밸런싱 검토 필요
         </div>
       `;
     } else if (info.threadCount === 0) {
       return `
         <div class="text-sm font-semibold text-green-700 bg-gradient-to-r from-green-50 to-green-100 p-3 rounded-xl border border-green-200">
-          ✅ 여유 있음 - 추가 업무 배정 가능
+          여유 있음 - 추가 업무 배정 가능
         </div>
       `;
     } else {
       return `
         <div class="text-sm font-semibold text-blue-700 bg-gradient-to-r from-blue-50 to-blue-100 p-3 rounded-xl border border-blue-200">
-          ✓ 정상 진행 중
+          정상 진행 중
         </div>
       `;
     }
@@ -326,13 +370,11 @@ class PeopleView {
    * 이벤트 리스너 등록
    */
   attachEventListeners() {
-    // 팀원 추가
     const btnAddMember = document.getElementById('btn-add-member');
     if (btnAddMember) {
       btnAddMember.addEventListener('click', () => this.showAddMemberModal());
     }
 
-    // 팀원 수정
     document.querySelectorAll('.btn-edit-member').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -341,7 +383,6 @@ class PeopleView {
       });
     });
 
-    // 팀원 삭제
     document.querySelectorAll('.btn-delete-member').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -350,9 +391,6 @@ class PeopleView {
     });
   }
 
-  /**
-   * 팀원 수정 모달
-   */
   showEditMemberModal(member) {
     const colorOptions = [
       { value: '#374151', label: '회색 (Gray)' },
@@ -411,9 +449,6 @@ class PeopleView {
     };
   }
 
-  /**
-   * 팀원 추가 모달
-   */
   showAddMemberModal() {
     const colorOptions = [
       { value: '#374151', label: '회색 (Gray)' },
@@ -480,9 +515,6 @@ class PeopleView {
     };
   }
 
-  /**
-   * 팀원 삭제
-   */
   async deleteMember(memberId) {
     const member = this.members.find(m => m.id === memberId);
     if (!member) return;

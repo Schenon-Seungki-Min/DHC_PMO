@@ -1,6 +1,6 @@
 /**
  * Thread Detail View
- * Thread 상세 정보, 담당자, Task 목록, 히스토리
+ * Thread 상세 정보, 담당자, Stakeholder(텍스트), Task 목록, 히스토리
  */
 
 class ThreadDetailView {
@@ -12,8 +12,6 @@ class ThreadDetailView {
     this.assignments = [];
     this.tasks = [];
     this.members = [];
-    this.stakeholders = [];
-    this.threadStakeholders = [];
     this.history = [];
   }
 
@@ -26,13 +24,8 @@ class ThreadDetailView {
     this.currentProject = project;
 
     try {
-      // 데이터 로드
       await this.loadData();
-
-      // UI 렌더링
       this.renderUI();
-
-      // 이벤트 리스너 등록
       this.attachEventListeners();
     } catch (error) {
       console.error('Failed to load thread detail:', error);
@@ -49,21 +42,13 @@ class ThreadDetailView {
    * 데이터 로드
    */
   async loadData() {
-    // 현재 assignment 로드
     this.assignments = await this.apiClient.getCurrentAssignments(this.currentThread.id);
 
-    // Task 로드
     const allTasks = await this.apiClient.getAllTasks();
     this.tasks = allTasks.filter(t => t.thread_id === this.currentThread.id);
 
-    // 팀원 로드
     this.members = await this.apiClient.getAllMembers();
 
-    // Stakeholder 로드
-    this.stakeholders = await this.apiClient.getAllStakeholders();
-    this.threadStakeholders = await this.apiClient.getThreadStakeholders(this.currentThread.id);
-
-    // 히스토리 로드
     this.history = await this.apiClient.getThreadHistory(this.currentThread.id);
   }
 
@@ -73,11 +58,12 @@ class ThreadDetailView {
   renderUI() {
     const dDay = Helpers.calculateDDay(this.currentThread.due_date);
     const projectName = this.currentProject ? this.currentProject.name : '전체 프로젝트';
+    const stakeholderText = this.currentThread.stakeholder_text || '';
 
     this.container.innerHTML = `
       <!-- Breadcrumb -->
       <div class="flex items-center gap-2 mb-4 text-sm text-gray-500 overflow-x-auto">
-        <span class="cursor-pointer hover:text-blue-600 transition-colors whitespace-nowrap" id="breadcrumb-timeline">← Timeline</span>
+        <span class="cursor-pointer hover:text-blue-600 transition-colors whitespace-nowrap" id="breadcrumb-timeline">\u2190 Timeline</span>
         <span>/</span>
         <span class="text-gray-900 font-semibold whitespace-nowrap">${Helpers.escapeHtml(this.currentThread.title)}</span>
       </div>
@@ -92,7 +78,7 @@ class ThreadDetailView {
                 <h2 class="text-xl md:text-2xl font-black text-gray-900">${Helpers.escapeHtml(this.currentThread.title)}</h2>
                 ${this.renderStatusBadge(this.currentThread.status)}
                 <button id="btn-change-status" class="text-xs text-gray-500 hover:text-blue-600 font-semibold px-2 py-0.5 border border-gray-300 hover:border-blue-400 rounded-lg transition">상태 변경</button>
-                <button id="btn-edit-thread" class="text-xs text-gray-500 hover:text-indigo-600 font-semibold px-2 py-0.5 border border-gray-300 hover:border-indigo-400 rounded-lg transition">✏️ 수정</button>
+                <button id="btn-edit-thread" class="text-xs text-gray-500 hover:text-indigo-600 font-semibold px-2 py-0.5 border border-gray-300 hover:border-indigo-400 rounded-lg transition">수정</button>
                 <span class="text-xs text-gray-400 font-medium">${Helpers.escapeHtml(projectName)}</span>
               </div>
               <p class="text-gray-600 font-medium">${Helpers.escapeHtml(this.currentThread.outcome_goal || '목표 없음')}</p>
@@ -118,7 +104,7 @@ class ThreadDetailView {
             <!-- 현재 담당 -->
             <div>
               <div class="flex items-center justify-between mb-4">
-                <h3 class="font-bold text-gray-900 flex items-center gap-2 text-lg">📍 현재 담당</h3>
+                <h3 class="font-bold text-gray-900 flex items-center gap-2 text-lg">현재 담당</h3>
                 <button id="btn-add-assignment" class="text-sm text-blue-600 hover:text-blue-700 font-semibold">+ 추가</button>
               </div>
               <div class="space-y-3" id="assignment-list">
@@ -126,20 +112,25 @@ class ThreadDetailView {
               </div>
             </div>
 
-            <!-- Stakeholders -->
+            <!-- Stakeholders (텍스트 입력) -->
             <div>
-              <div class="flex items-center justify-between mb-4">
-                <h3 class="font-bold text-gray-900 flex items-center gap-2 text-lg">🤝 Stakeholders</h3>
-                <button id="btn-add-stakeholder" class="text-sm text-blue-600 hover:text-blue-700 font-semibold">+ 추가</button>
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="font-bold text-gray-900 flex items-center gap-2 text-lg">Stakeholders</h3>
               </div>
-              <div class="space-y-3" id="stakeholder-list">
-                ${this.renderStakeholders()}
+              <div class="space-y-2">
+                <textarea id="stakeholder-text-input"
+                  placeholder="업체명, 담당자 등 자유롭게 입력&#10;예: EMR업체 (홍길동), 법무팀"
+                  class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-400 focus:outline-none resize-none"
+                  rows="3">${Helpers.escapeHtml(stakeholderText)}</textarea>
+                <div class="flex justify-end">
+                  <button id="btn-save-stakeholder" class="text-xs text-blue-600 hover:text-blue-700 font-semibold px-3 py-1.5 border border-blue-300 hover:border-blue-400 rounded-lg transition">저장</button>
+                </div>
               </div>
             </div>
 
             <!-- 담당 히스토리 -->
             <div>
-              <h3 class="font-bold text-gray-900 mb-4 flex items-center gap-2 text-lg">📜 담당 히스토리</h3>
+              <h3 class="font-bold text-gray-900 mb-4 flex items-center gap-2 text-lg">담당 히스토리</h3>
               <div class="relative" id="history-timeline">
                 ${this.renderHistory()}
               </div>
@@ -149,7 +140,7 @@ class ThreadDetailView {
           <!-- Right Column: Tasks -->
           <div class="p-5 md:p-6">
             <div class="flex justify-between items-center mb-5">
-              <h3 class="font-bold text-gray-900 text-lg flex items-center gap-2">📋 Tasks</h3>
+              <h3 class="font-bold text-gray-900 text-lg flex items-center gap-2">Tasks</h3>
               <button id="btn-add-task" class="btn-primary text-white px-3 py-2 rounded-lg text-sm font-semibold">+ 추가</button>
             </div>
             <div class="space-y-3" id="task-list">
@@ -169,7 +160,6 @@ class ThreadDetailView {
       return '<div class="text-sm text-gray-500 text-center py-4">담당자가 없습니다.</div>';
     }
 
-    // lead를 먼저, 그 다음 support
     const sortedAssignments = [...this.assignments].sort((a, b) => {
       if (a.role === 'lead' && b.role !== 'lead') return -1;
       if (a.role !== 'lead' && b.role === 'lead') return 1;
@@ -204,48 +194,13 @@ class ThreadDetailView {
   }
 
   /**
-   * Stakeholder 렌더링
-   */
-  renderStakeholders() {
-    if (this.threadStakeholders.length === 0) {
-      return '<div class="text-sm text-gray-500 text-center py-4">Stakeholder가 없습니다.</div>';
-    }
-
-    return this.threadStakeholders.map(ts => {
-      if (!ts || !ts.id) return '';
-
-      const roleColorMap = {
-        counterpart: { bg: 'bg-orange-100', text: 'text-orange-800', border: 'border-orange-200' },
-        approver:    { bg: 'bg-purple-100', text: 'text-purple-800', border: 'border-purple-200' },
-        collaborator:{ bg: 'bg-green-100',  text: 'text-green-800',  border: 'border-green-200'  }
-      };
-      const colors = roleColorMap[ts.role_type] || { bg: 'bg-gray-100', text: 'text-gray-800', border: 'border-gray-200' };
-
-      return `
-        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border-2 rounded-xl hover:${colors.border} transition-colors">
-          <div>
-            <div class="font-bold text-gray-900">${Helpers.escapeHtml(ts.name)}</div>
-            <div class="text-sm text-gray-500 mt-0.5">${Helpers.escapeHtml(ts.organization || '')} · ${ts.type === 'internal' ? '내부' : '외부'}</div>
-          </div>
-          <div class="flex items-center gap-2 mt-2 sm:mt-0">
-            <span class="badge ${colors.bg} ${colors.text}">${ts.role_type}</span>
-            <button class="btn-remove-stakeholder text-xs text-red-600 hover:text-red-700 font-semibold" data-stakeholder-id="${ts.id}">제거</button>
-          </div>
-        </div>
-      `;
-    }).join('');
-  }
-
-  /**
    * 히스토리 타임라인 렌더링
-   * thread_assignments 레코드를 grab/release 이벤트로 변환
    */
   renderHistory() {
     if (this.history.length === 0) {
       return '<div class="text-sm text-gray-500 text-center py-4">히스토리가 없습니다.</div>';
     }
 
-    // 각 assignment를 grab 이벤트 + (있으면) release 이벤트로 분리
     const events = [];
     this.history.forEach(item => {
       events.push({ ...item, eventType: 'grab', timestamp: item.grabbed_at });
@@ -254,7 +209,6 @@ class ThreadDetailView {
       }
     });
 
-    // 최신순 정렬
     events.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
     return `
@@ -306,7 +260,6 @@ class ThreadDetailView {
       return '<div class="text-sm text-gray-500 text-center py-4">Task가 없습니다.</div>';
     }
 
-    // 진행중 → 대기 → 완료 순으로 정렬
     const statusOrder = { 'in_progress': 0, 'pending': 1, 'completed': 2 };
     const sortedTasks = [...this.tasks].sort((a, b) => {
       const oa = statusOrder[a.status] ?? 1;
@@ -344,9 +297,6 @@ class ThreadDetailView {
     </button>`;
   }
 
-  /**
-   * 완료된 Task 렌더링
-   */
   renderCompletedTask(task) {
     const assignee = task.assignee_id ? this.members.find(m => m.id === task.assignee_id) : null;
     const notes = task.notes ? Helpers.escapeHtml(task.notes.slice(0, 30)) : '';
@@ -373,9 +323,6 @@ class ThreadDetailView {
     `;
   }
 
-  /**
-   * 진행중 Task 렌더링
-   */
   renderInProgressTask(task) {
     const assignee = task.assignee_id ? this.members.find(m => m.id === task.assignee_id) : null;
     const dDay = Helpers.calculateDDay(task.due_date);
@@ -385,7 +332,7 @@ class ThreadDetailView {
       <div class="p-4 border-2 border-blue-400 rounded-xl bg-gradient-to-r from-blue-50 to-transparent shadow-sm" data-task-id="${task.id}">
         <div class="flex items-start justify-between gap-3">
           <div class="flex items-start gap-3 flex-1">
-            <span class="text-blue-600 text-xl font-bold mt-0.5">→</span>
+            <span class="text-blue-600 text-xl font-bold mt-0.5">\u2192</span>
             <div class="flex-1">
               <div class="font-bold text-gray-900">${Helpers.escapeHtml(task.title)}</div>
               ${notes ? `<div class="text-xs text-gray-500 mt-0.5">${notes}</div>` : ''}
@@ -410,9 +357,6 @@ class ThreadDetailView {
     `;
   }
 
-  /**
-   * 대기/미배정 Task 렌더링
-   */
   renderPendingTask(task) {
     const assignee = task.assignee_id ? this.members.find(m => m.id === task.assignee_id) : null;
     const dDay = Helpers.calculateDDay(task.due_date);
@@ -422,7 +366,7 @@ class ThreadDetailView {
       <div class="p-4 border-2 rounded-xl hover:border-blue-200 transition-colors" data-task-id="${task.id}">
         <div class="flex items-start justify-between gap-3">
           <div class="flex items-start gap-3 flex-1">
-            <span class="text-gray-400 text-xl mt-0.5">○</span>
+            <span class="text-gray-400 text-xl mt-0.5">\u25CB</span>
             <div class="flex-1">
               <div class="font-semibold text-gray-900">${Helpers.escapeHtml(task.title)}</div>
               ${notes ? `<div class="text-xs text-gray-500 mt-0.5">${notes}</div>` : ''}
@@ -441,9 +385,6 @@ class ThreadDetailView {
     `;
   }
 
-  /**
-   * Status 뱃지
-   */
   renderStatusBadge(status) {
     const statusMap = {
       'active': '<span class="badge bg-green-100 text-green-700">진행중</span>',
@@ -457,7 +398,7 @@ class ThreadDetailView {
    * 이벤트 리스너 등록
    */
   attachEventListeners() {
-    // Breadcrumb - Timeline으로 돌아가기 (hash 기반)
+    // Breadcrumb
     const breadcrumbTimeline = document.getElementById('breadcrumb-timeline');
     if (breadcrumbTimeline) {
       breadcrumbTimeline.addEventListener('click', () => {
@@ -496,18 +437,11 @@ class ThreadDetailView {
       });
     });
 
-    // Stakeholder 추가
-    const btnAddStakeholder = document.getElementById('btn-add-stakeholder');
-    if (btnAddStakeholder) {
-      btnAddStakeholder.addEventListener('click', () => this.showAddStakeholderModal());
+    // Stakeholder 텍스트 저장
+    const btnSaveStakeholder = document.getElementById('btn-save-stakeholder');
+    if (btnSaveStakeholder) {
+      btnSaveStakeholder.addEventListener('click', () => this.saveStakeholderText());
     }
-
-    // Stakeholder 제거
-    document.querySelectorAll('.btn-remove-stakeholder').forEach(btn => {
-      btn.addEventListener('click', () => {
-        this.removeStakeholder(btn.dataset.stakeholderId);
-      });
-    });
 
     // Task 추가
     const btnAddTask = document.getElementById('btn-add-task');
@@ -538,6 +472,36 @@ class ThreadDetailView {
         this.deleteTask(btn.dataset.taskId);
       });
     });
+  }
+
+  /**
+   * Stakeholder 텍스트 저장
+   */
+  async saveStakeholderText() {
+    const textarea = document.getElementById('stakeholder-text-input');
+    if (!textarea) return;
+
+    const text = textarea.value.trim();
+    try {
+      const updated = await this.apiClient.updateThread(this.currentThread.id, {
+        stakeholder_text: text
+      });
+      this.currentThread = { ...this.currentThread, ...updated };
+      // 저장 성공 피드백
+      const btn = document.getElementById('btn-save-stakeholder');
+      if (btn) {
+        btn.textContent = '저장됨';
+        btn.classList.replace('text-blue-600', 'text-green-600');
+        btn.classList.replace('border-blue-300', 'border-green-300');
+        setTimeout(() => {
+          btn.textContent = '저장';
+          btn.classList.replace('text-green-600', 'text-blue-600');
+          btn.classList.replace('border-green-300', 'border-blue-300');
+        }, 1500);
+      }
+    } catch (error) {
+      alert('Stakeholder 저장 실패: ' + error.message);
+    }
   }
 
   /**
@@ -593,9 +557,6 @@ class ThreadDetailView {
     };
   }
 
-  /**
-   * 담당자 제거
-   */
   async releaseAssignment(assignmentId) {
     if (!confirm('담당에서 제거하시겠습니까?')) return;
     try {
@@ -606,86 +567,6 @@ class ThreadDetailView {
     }
   }
 
-  /**
-   * Stakeholder 추가 모달
-   */
-  showAddStakeholderModal() {
-    if (this.stakeholders.length === 0) {
-      alert('등록된 Stakeholder가 없습니다. 먼저 Stakeholder를 등록해주세요.');
-      return;
-    }
-
-    const alreadyAdded = new Set(this.threadStakeholders.map(ts => ts.id));
-    const available = this.stakeholders.filter(s => !alreadyAdded.has(s.id));
-
-    if (available.length === 0) {
-      alert('추가 가능한 Stakeholder가 없습니다.');
-      return;
-    }
-
-    const stakeholderOptions = available.map(s =>
-      `<option value="${s.id}">${Helpers.escapeHtml(s.name)} (${s.type === 'internal' ? '내부' : '외부'})</option>`
-    ).join('');
-
-    Helpers.showModal(`
-      <h3 class="text-lg font-bold text-gray-900 mb-5">Stakeholder 추가</h3>
-      <div class="space-y-4">
-        <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1">Stakeholder 선택</label>
-          <select id="m-stakeholder-id" class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-400 focus:outline-none">
-            ${stakeholderOptions}
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-2">역할 유형</label>
-          <div class="flex flex-wrap gap-3">
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="radio" name="m-role-type" value="counterpart" checked class="accent-orange-500"> <span class="text-sm font-medium">Counterpart (외부 상대)</span>
-            </label>
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="radio" name="m-role-type" value="collaborator" class="accent-green-500"> <span class="text-sm font-medium">Collaborator (협력)</span>
-            </label>
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="radio" name="m-role-type" value="approver" class="accent-purple-500"> <span class="text-sm font-medium">Approver (승인권자)</span>
-            </label>
-          </div>
-        </div>
-      </div>
-      <div class="flex gap-3 mt-6">
-        <button id="m-cancel" class="flex-1 py-2.5 rounded-xl border-2 border-gray-200 text-gray-700 font-semibold text-sm hover:bg-gray-50 transition">취소</button>
-        <button id="m-submit" class="flex-1 py-2.5 rounded-xl btn-primary text-white font-semibold text-sm">추가</button>
-      </div>
-    `);
-    document.getElementById('m-cancel').onclick = () => Helpers.closeModal();
-    document.getElementById('m-submit').onclick = async () => {
-      const stakeholderId = document.getElementById('m-stakeholder-id').value;
-      const roleType = document.querySelector('input[name="m-role-type"]:checked')?.value || 'counterpart';
-      Helpers.closeModal();
-      try {
-        await this.apiClient.addThreadStakeholder(this.currentThread.id, stakeholderId, roleType);
-        await this.render(this.container, this.currentThread, this.currentProject);
-      } catch (error) {
-        alert('Stakeholder 추가 실패: ' + error.message);
-      }
-    };
-  }
-
-  /**
-   * Stakeholder 제거
-   */
-  async removeStakeholder(stakeholderId) {
-    if (!confirm('Stakeholder를 제거하시겠습니까?')) return;
-    try {
-      await this.apiClient.removeThreadStakeholder(this.currentThread.id, stakeholderId);
-      await this.render(this.container, this.currentThread, this.currentProject);
-    } catch (error) {
-      alert('제거 실패: ' + error.message);
-    }
-  }
-
-  /**
-   * Task 추가 모달 (달력 + 담당자 선택 + notes)
-   */
   showAddTaskModal() {
     const today = new Date().toISOString().split('T')[0];
     const memberOptions = `<option value="">미배정</option>` +
@@ -725,7 +606,6 @@ class ThreadDetailView {
       </div>
     `);
 
-    // 글자 수 카운터
     document.getElementById('m-task-notes').addEventListener('input', function() {
       document.getElementById('m-notes-count').textContent = this.value.length;
     });
@@ -758,9 +638,6 @@ class ThreadDetailView {
     };
   }
 
-  /**
-   * Task 수정 모달
-   */
   showEditTaskModal(taskId) {
     const task = this.tasks.find(t => t.id === taskId);
     if (!task) return;
@@ -846,9 +723,6 @@ class ThreadDetailView {
     };
   }
 
-  /**
-   * Task 완료
-   */
   async completeTask(taskId) {
     if (!confirm('Task를 완료 처리하시겠습니까?')) return;
     try {
@@ -874,9 +748,6 @@ class ThreadDetailView {
     }
   }
 
-  /**
-   * Thread 수정 모달
-   */
   showEditThreadModal() {
     const t = this.currentThread;
     const startVal = t.start_date ? t.start_date.split('T')[0] : '';
@@ -940,9 +811,6 @@ class ThreadDetailView {
     };
   }
 
-  /**
-   * Thread 상태 변경 모달
-   */
   showChangeStatusModal() {
     const statusOptions = [
       { value: 'active',    label: '진행중',  desc: '현재 진행 중인 Thread' },
@@ -987,9 +855,6 @@ class ThreadDetailView {
     };
   }
 
-  /**
-   * Thread 삭제
-   */
   async deleteThread() {
     if (!confirm(`"${this.currentThread.title}" Thread를 삭제하시겠습니까?\n\n관련 Task와 할당 기록도 함께 삭제됩니다.`)) return;
     try {
