@@ -472,11 +472,11 @@ class ThreadDetailView {
    * 이벤트 리스너 등록
    */
   attachEventListeners() {
-    // Breadcrumb - Timeline으로 돌아가기
+    // Breadcrumb - Timeline으로 돌아가기 (hash 기반)
     const breadcrumbTimeline = document.getElementById('breadcrumb-timeline');
     if (breadcrumbTimeline) {
       breadcrumbTimeline.addEventListener('click', () => {
-        window.app.showView('timeline');
+        window.location.hash = '/timeline';
       });
     }
 
@@ -936,7 +936,8 @@ class ThreadDetailView {
     if (!confirm(`"${this.currentThread.title}" Thread를 삭제하시겠습니까?\n\n관련 Task와 할당 기록도 함께 삭제됩니다.`)) return;
     try {
       await this.apiClient.deleteThread(this.currentThread.id);
-      window.app.showView('timeline');
+      window.app.currentThread = null;
+      window.location.hash = '/timeline';
     } catch (error) {
       alert('Thread 삭제 실패: ' + error.message);
     }
