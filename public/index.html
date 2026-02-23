@@ -140,24 +140,28 @@
             flex-grow: 1;
         }
 
-        /* Multi-assignee vertical stripes */
-        .member-stripe {
+        /* Multi-assignee horizontal bands (stacked top/bottom = 동시 담당) */
+        .member-bands-wrap {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
             height: 100%;
+        }
+
+        .member-band {
+            width: 100%;
             display: flex;
             align-items: center;
-            justify-content: center;
-            position: relative;
-        }
-
-        .member-stripe + .member-stripe {
-            border-left: 2px solid rgba(255, 255, 255, 0.4);
-        }
-
-        .stripe-label {
+            padding-left: 8px;
             font-size: 11px;
             font-weight: 700;
             color: white;
             text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .member-band + .member-band {
+            border-top: 1.5px solid rgba(255, 255, 255, 0.5);
         }
 
         /* Day grid lines */
@@ -213,6 +217,7 @@
         <nav class="flex gap-4 md:gap-8 mt-4 max-w-7xl mx-auto overflow-x-auto">
             <button id="tab-timeline" class="pb-3 px-1 text-sm font-medium tab-active whitespace-nowrap">Timeline</button>
             <button id="tab-people" class="pb-3 px-1 text-sm font-medium text-gray-500 whitespace-nowrap">People</button>
+            <button id="tab-templates" class="pb-3 px-1 text-sm font-medium text-gray-500 whitespace-nowrap">Templates</button>
         </nav>
     </header>
 
@@ -240,6 +245,14 @@
                 <p class="mt-4 text-gray-600">팀원 정보를 불러오는 중...</p>
             </div>
         </div>
+
+        <!-- View 4: Templates View -->
+        <div id="view-templates" class="view hidden">
+            <div class="text-center py-12">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                <p class="mt-4 text-gray-600">템플릿 정보를 불러오는 중...</p>
+            </div>
+        </div>
     </main>
 
     <!-- Global Modal -->
@@ -260,6 +273,7 @@
     <script src="/js/views/timeline.js"></script>
     <script src="/js/views/threadDetail.js"></script>
     <script src="/js/views/people.js"></script>
+    <script src="/js/views/templateManager.js"></script>
     <script src="/js/app.js"></script>
 </body>
 </html>

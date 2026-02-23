@@ -295,7 +295,7 @@ class DataService {
     return data;
   }
 
-  async getTemplateById(id) {
+  async getTemplateById(id, includeTasks = false) {
     const { data, error } = await supabase
       .from('thread_templates')
       .select('*')
@@ -303,6 +303,9 @@ class DataService {
       .single();
     if (error && error.code === 'PGRST116') return null;
     if (error) throw new Error(error.message);
+    if (includeTasks && data) {
+      data.task_templates = await this.getTaskTemplates(id);
+    }
     return data;
   }
 
@@ -337,21 +340,21 @@ class DataService {
     return true;
   }
 
-  // ========== TEMPLATE TASKS ==========
+  // ========== TASK TEMPLATES ==========
 
-  async getTemplateTasks(templateId) {
+  async getTaskTemplates(templateId) {
     const { data, error } = await supabase
-      .from('template_tasks')
+      .from('task_templates')
       .select('*')
       .eq('template_id', templateId)
-      .order('order', { ascending: true });
+      .order('sort_order', { ascending: true });
     if (error) throw new Error(error.message);
     return data;
   }
 
-  async createTemplateTask(taskData) {
+  async createTaskTemplate(taskData) {
     const { data, error } = await supabase
-      .from('template_tasks')
+      .from('task_templates')
       .insert([taskData])
       .select()
       .single();
@@ -359,9 +362,9 @@ class DataService {
     return data;
   }
 
-  async updateTemplateTask(id, updates) {
+  async updateTaskTemplate(id, updates) {
     const { data, error } = await supabase
-      .from('template_tasks')
+      .from('task_templates')
       .update(updates)
       .eq('id', id)
       .select()
@@ -371,25 +374,39 @@ class DataService {
     return data;
   }
 
-  async deleteTemplateTask(id) {
+  async deleteTaskTemplate(id) {
     const { error } = await supabase
-      .from('template_tasks')
+      .from('task_templates')
       .delete()
       .eq('id', id);
     if (error) throw new Error(error.message);
     return true;
   }
 
-  // ========== CREATE THREAD FROM TEMPLATE ==========
+  // ========== APPLY TEMPLATE ==========
 
-  async createThreadFromTemplate(templateId, threadData) {
+  async applyTemplate(templateId, { project_id, title_suffix, start_date, due_date }) {
     const template = await this.getTemplateById(templateId);
     if (!template) throw new Error('Template not found');
 
+    const taskTemplates = await this.getTaskTemplates(templateId);
+
+    const threadTitle = template.title_prefix
+      ? `${template.title_prefix} ${title_suffix}`.trim()
+      : title_suffix;
+
     const newThread = {
-      ...threadData,
-      thread_type: template.thread_type
+      id: `thread-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+      project_id,
+      title: threadTitle,
+      thread_type: 'execution',
+      start_date: start_date || null,
+      due_date,
+      status: 'active',
+      outcome_goal: template.outcome_goal || null,
+      stakeholder_text: ''
     };
+
     const { data: createdThread, error: threadError } = await supabase
       .from('threads')
       .insert([newThread])
@@ -397,11 +414,10 @@ class DataService {
       .single();
     if (threadError) throw new Error(threadError.message);
 
-    const templateTasks = await this.getTemplateTasks(templateId);
-    const dueDate = new Date(threadData.due_date);
-    const taskRows = templateTasks.map(tt => {
-      const taskDue = new Date(dueDate);
-      taskDue.setDate(taskDue.getDate() + tt.day_offset);
+    const baseDate = new Date(start_date || due_date);
+    const taskRows = taskTemplates.map(tt => {
+      const taskDue = new Date(baseDate);
+      taskDue.setDate(taskDue.getDate() + (tt.relative_due_days || 0));
       return {
         id: `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         thread_id: createdThread.id,
@@ -410,8 +426,8 @@ class DataService {
         start_date: null,
         due_date: taskDue.toISOString().split('T')[0],
         status: 'todo',
-        priority: tt.priority,
-        notes: tt.notes || ''
+        priority: tt.priority || 'medium',
+        notes: ''
       };
     });
 

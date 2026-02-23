@@ -5,6 +5,7 @@
  *   #/timeline        → Timeline 뷰 (메인, 전체 프로젝트 그룹 헤더)
  *   #/thread/:id      → Thread Detail 뷰 (Timeline 탭 활성)
  *   #/people          → People 뷰
+ *   #/templates       → Templates 뷰
  */
 
 // 인증 가드: 토큰 없거나 만료되면 로그인 페이지로
@@ -37,9 +38,10 @@ class App {
     this._skipNextHashChange = false;
 
     this.views = {
-      timeline: new TimelineView(this.apiClient),
-      detail:   new ThreadDetailView(this.apiClient),
-      people:   new PeopleView(this.apiClient)
+      timeline:  new TimelineView(this.apiClient),
+      detail:    new ThreadDetailView(this.apiClient),
+      people:    new PeopleView(this.apiClient),
+      templates: new TemplateManagerView(this.apiClient)
     };
   }
 
@@ -67,8 +69,9 @@ class App {
    */
   setupNavigation() {
     const tabs = {
-      'tab-timeline': 'timeline',
-      'tab-people':   'people',
+      'tab-timeline':  'timeline',
+      'tab-people':    'people',
+      'tab-templates': 'templates',
     };
 
     Object.entries(tabs).forEach(([tabId, section]) => {
@@ -104,6 +107,10 @@ class App {
       this._switchView('people');
       this._activateTab('people');
       await this.views.people.render(document.getElementById('view-people'));
+    } else if (section === 'templates') {
+      this._switchView('templates');
+      this._activateTab('templates');
+      await this.views.templates.render(document.getElementById('view-templates'));
     } else {
       // timeline (default)
       this._switchView('timeline');

@@ -378,7 +378,8 @@ app.get('/api/templates', async (req, res) => {
 
 app.get('/api/templates/:id', async (req, res) => {
   try {
-    const template = await dataService.getTemplateById(req.params.id);
+    const includeTasks = req.query.include === 'tasks';
+    const template = await dataService.getTemplateById(req.params.id, includeTasks);
     if (!template) {
       return res.status(404).json({ error: 'Template not found' });
     }
@@ -424,21 +425,63 @@ app.delete('/api/templates/:id', async (req, res) => {
   }
 });
 
-// Template Tasks
+// Task Templates (within a thread template)
 app.get('/api/templates/:id/tasks', async (req, res) => {
   try {
-    const tasks = await dataService.getTemplateTasks(req.params.id);
+    const tasks = await dataService.getTaskTemplates(req.params.id);
     res.json(tasks);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// Create Thread from Template
-app.post('/api/threads/from-template', async (req, res) => {
+app.post('/api/templates/:id/tasks', async (req, res) => {
+  if (!req.body.title?.trim()) {
+    return res.status(400).json({ error: 'title is required' });
+  }
   try {
-    const { template_id, ...threadData } = req.body;
-    const result = await dataService.createThreadFromTemplate(template_id, threadData);
+    const taskData = { ...req.body, template_id: req.params.id };
+    const newTask = await dataService.createTaskTemplate(taskData);
+    res.status(201).json(newTask);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/task-templates/:id', async (req, res) => {
+  try {
+    const updated = await dataService.updateTaskTemplate(req.params.id, req.body);
+    if (!updated) {
+      return res.status(404).json({ error: 'Task template not found' });
+    }
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete('/api/task-templates/:id', async (req, res) => {
+  try {
+    const deleted = await dataService.deleteTaskTemplate(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ error: 'Task template not found' });
+    }
+    res.json({ message: 'Task template deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Apply Template → Thread + Tasks 한번에 생성
+app.post('/api/templates/:id/apply', async (req, res) => {
+  const { project_id, title_suffix, start_date, due_date } = req.body;
+  if (!project_id) return res.status(400).json({ error: 'project_id is required' });
+  if (!title_suffix?.trim()) return res.status(400).json({ error: 'title_suffix is required' });
+  if (!due_date) return res.status(400).json({ error: 'due_date is required' });
+  try {
+    const result = await dataService.applyTemplate(req.params.id, {
+      project_id, title_suffix: title_suffix.trim(), start_date, due_date
+    });
     res.status(201).json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });

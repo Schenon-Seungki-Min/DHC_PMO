@@ -69,22 +69,23 @@ CREATE TABLE IF NOT EXISTS thread_assignments (
 
 -- 6. Thread Templates
 CREATE TABLE IF NOT EXISTS thread_templates (
-  id TEXT PRIMARY KEY,
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   name TEXT NOT NULL,
-  thread_type TEXT NOT NULL CHECK (thread_type IN ('negotiation', 'execution')),
   description TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  title_prefix TEXT DEFAULT '',
+  outcome_goal TEXT DEFAULT '',
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 7. Template Tasks
-CREATE TABLE IF NOT EXISTS template_tasks (
-  id TEXT PRIMARY KEY,
+-- 7. Task Templates
+CREATE TABLE IF NOT EXISTS task_templates (
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   template_id TEXT NOT NULL REFERENCES thread_templates(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
-  day_offset INTEGER NOT NULL DEFAULT 0,
-  priority TEXT NOT NULL DEFAULT 'medium',
-  "order" INTEGER NOT NULL DEFAULT 0,
-  notes TEXT DEFAULT ''
+  priority TEXT DEFAULT 'medium' CHECK (priority IN ('high', 'medium', 'low')),
+  relative_due_days INTEGER DEFAULT 0,
+  sort_order INTEGER DEFAULT 0
 );
 
 -- RLS 활성화 (service_role key가 bypass하므로 policy 불필요)
@@ -94,4 +95,4 @@ ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE team_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE thread_assignments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE thread_templates ENABLE ROW LEVEL SECURITY;
-ALTER TABLE template_tasks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE task_templates ENABLE ROW LEVEL SECURITY;
