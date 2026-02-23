@@ -405,31 +405,56 @@ class TimelineView {
   }
 
   /**
-   * 새 Thread 모달
+   * 새 Thread 모달 (빈 Thread / 템플릿에서 생성 토글)
    */
-  showNewThreadModal() {
+  async showNewThreadModal() {
     const today = new Date().toISOString().split('T')[0];
 
-    // 항상 프로젝트 선택 드롭다운 표시
-    const projectSelectHtml = `
-      <div>
-        <label class="block text-sm font-semibold text-gray-700 mb-1">프로젝트 <span class="text-red-500">*</span></label>
-        <select id="m-thread-project" class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-400 focus:outline-none">
-          <option value="">프로젝트 선택</option>
-          ${(this.projects || []).map(p => `<option value="${p.id}">${Helpers.escapeHtml(p.name)}</option>`).join('')}
-        </select>
-      </div>
-    `;
+    let templates = [];
+    try { templates = await this.apiClient.getAllTemplates(); } catch (e) { /* ignore */ }
+
+    const projectOptions = (this.projects || []).map(p =>
+      `<option value="${p.id}">${Helpers.escapeHtml(p.name)}</option>`
+    ).join('');
+
+    const templateOptions = templates.map(t =>
+      `<option value="${t.id}">${Helpers.escapeHtml(t.name)}${t.description ? ' - ' + Helpers.escapeHtml(t.description) : ''}</option>`
+    ).join('');
 
     Helpers.showModal(`
       <h3 class="text-lg font-bold text-gray-900 mb-5">새 Thread 생성</h3>
+
+      <!-- 생성 방식 토글 -->
+      <div class="flex gap-2 mb-5">
+        <button id="m-mode-blank" class="flex-1 py-2 rounded-xl border-2 border-blue-500 bg-blue-50 text-blue-700 font-semibold text-sm transition">빈 Thread</button>
+        <button id="m-mode-template" class="flex-1 py-2 rounded-xl border-2 border-gray-200 text-gray-600 font-semibold text-sm hover:bg-gray-50 transition">템플릿에서 생성</button>
+      </div>
+
       <div class="space-y-4">
+        <!-- 템플릿 선택 (template 모드에서만 표시) -->
+        <div id="m-template-section" class="hidden">
+          <label class="block text-sm font-semibold text-gray-700 mb-1">템플릿 <span class="text-red-500">*</span></label>
+          <select id="m-template-select" class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-400 focus:outline-none">
+            <option value="">템플릿 선택</option>
+            ${templateOptions}
+          </select>
+        </div>
+
+        <!-- 제목 (blank: 전체 제목, template: title_suffix) -->
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1">제목 <span class="text-red-500">*</span></label>
+          <label id="m-title-label" class="block text-sm font-semibold text-gray-700 mb-1">제목 <span class="text-red-500">*</span></label>
           <input type="text" id="m-thread-title" placeholder="Thread 제목" maxlength="60"
             class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-400 focus:outline-none">
         </div>
-        ${projectSelectHtml}
+
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">프로젝트 <span class="text-red-500">*</span></label>
+          <select id="m-thread-project" class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-400 focus:outline-none">
+            <option value="">프로젝트 선택</option>
+            ${projectOptions}
+          </select>
+        </div>
+
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="block text-sm font-semibold text-gray-700 mb-1">시작일</label>
@@ -442,45 +467,97 @@ class TimelineView {
               class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-400 focus:outline-none">
           </div>
         </div>
-        <div>
+
+        <!-- 목표 (blank 모드에서만 표시) -->
+        <div id="m-goal-section">
           <label class="block text-sm font-semibold text-gray-700 mb-1">목표 / 성과 기준</label>
           <input type="text" id="m-thread-goal" placeholder="이 Thread의 목표를 간략히 입력" maxlength="100"
             class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-400 focus:outline-none">
         </div>
       </div>
+
       <div class="flex gap-3 mt-6">
         <button id="m-cancel" class="flex-1 py-2.5 rounded-xl border-2 border-gray-200 text-gray-700 font-semibold text-sm hover:bg-gray-50 transition">취소</button>
         <button id="m-submit" class="flex-1 py-2.5 rounded-xl btn-primary text-white font-semibold text-sm">생성</button>
       </div>
     `);
 
+    let mode = 'blank';
+
+    const setMode = (newMode) => {
+      mode = newMode;
+      const mBlank = document.getElementById('m-mode-blank');
+      const mTpl   = document.getElementById('m-mode-template');
+      const tplSec = document.getElementById('m-template-section');
+      const goalSec = document.getElementById('m-goal-section');
+      const titleLabel = document.getElementById('m-title-label');
+      const titleInput = document.getElementById('m-thread-title');
+
+      if (mode === 'blank') {
+        mBlank.className = 'flex-1 py-2 rounded-xl border-2 border-blue-500 bg-blue-50 text-blue-700 font-semibold text-sm transition';
+        mTpl.className   = 'flex-1 py-2 rounded-xl border-2 border-gray-200 text-gray-600 font-semibold text-sm hover:bg-gray-50 transition';
+        tplSec.classList.add('hidden');
+        goalSec.classList.remove('hidden');
+        titleLabel.textContent = '제목 ';
+        titleInput.placeholder = 'Thread 제목';
+      } else {
+        mTpl.className   = 'flex-1 py-2 rounded-xl border-2 border-blue-500 bg-blue-50 text-blue-700 font-semibold text-sm transition';
+        mBlank.className = 'flex-1 py-2 rounded-xl border-2 border-gray-200 text-gray-600 font-semibold text-sm hover:bg-gray-50 transition';
+        tplSec.classList.remove('hidden');
+        goalSec.classList.add('hidden');
+        titleLabel.innerHTML = '제목 보충 <span class="text-red-500">*</span>';
+        titleInput.placeholder = '예: 3월 / 김팀장';
+      }
+    };
+
+    document.getElementById('m-mode-blank').onclick = () => setMode('blank');
+    document.getElementById('m-mode-template').onclick = () => setMode('template');
     document.getElementById('m-cancel').onclick = () => Helpers.closeModal();
+
     document.getElementById('m-submit').onclick = async () => {
       const title = document.getElementById('m-thread-title').value.trim();
       const projectId = document.getElementById('m-thread-project')?.value;
       const startDate = document.getElementById('m-thread-start').value;
       const dueDate = document.getElementById('m-thread-due').value;
-      const outcomeGoal = document.getElementById('m-thread-goal').value.trim();
 
       if (!title) { alert('제목을 입력해주세요.'); return; }
       if (!projectId) { alert('프로젝트를 선택해주세요.'); return; }
       if (!dueDate) { alert('마감일을 선택해주세요.'); return; }
 
-      Helpers.closeModal();
-      try {
-        await this.apiClient.createThread({
-          id: `thread-${Date.now()}`,
-          title,
-          project_id: projectId,
-          thread_type: 'execution',
-          start_date: startDate || null,
-          due_date: dueDate,
-          outcome_goal: outcomeGoal || null,
-          status: 'active'
-        });
-        await this.render(this.container, this.currentProject);
-      } catch (error) {
-        alert('Thread 생성 실패: ' + error.message);
+      if (mode === 'template') {
+        const templateId = document.getElementById('m-template-select')?.value;
+        if (!templateId) { alert('템플릿을 선택해주세요.'); return; }
+
+        Helpers.closeModal();
+        try {
+          await this.apiClient.applyTemplate(templateId, {
+            project_id: projectId,
+            title_suffix: title,
+            start_date: startDate || null,
+            due_date: dueDate
+          });
+          await this.render(this.container, this.currentProject);
+        } catch (error) {
+          alert('템플릿 적용 실패: ' + error.message);
+        }
+      } else {
+        const outcomeGoal = document.getElementById('m-thread-goal').value.trim();
+        Helpers.closeModal();
+        try {
+          await this.apiClient.createThread({
+            id: `thread-${Date.now()}`,
+            title,
+            project_id: projectId,
+            thread_type: 'execution',
+            start_date: startDate || null,
+            due_date: dueDate,
+            outcome_goal: outcomeGoal || null,
+            status: 'active'
+          });
+          await this.render(this.container, this.currentProject);
+        } catch (error) {
+          alert('Thread 생성 실패: ' + error.message);
+        }
       }
     };
   }

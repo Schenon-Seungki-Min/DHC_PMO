@@ -96,8 +96,8 @@ async function run() {
   }));
   await upsert('thread_assignments', assignments, 'thread_assignments');
 
-  // 7. Template Tasks
-  await upsert('template_tasks', data.template_tasks || [], 'template_tasks');
+  // 7. Task Templates
+  await upsert('task_templates', data.task_templates || [], 'task_templates');
 
   console.log('\n✅ Migration complete!');
 }

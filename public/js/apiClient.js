@@ -191,8 +191,9 @@ class APIClient {
     return this.request('/api/templates');
   }
 
-  async getTemplateById(id) {
-    return this.request(`/api/templates/${id}`);
+  async getTemplateById(id, includeTasks = false) {
+    const qs = includeTasks ? '?include=tasks' : '';
+    return this.request(`/api/templates/${id}${qs}`);
   }
 
   async createTemplate(data) {
@@ -215,14 +216,38 @@ class APIClient {
     });
   }
 
-  async getTemplateTasks(templateId) {
+  // ========== TASK TEMPLATES ==========
+
+  async getTaskTemplates(templateId) {
     return this.request(`/api/templates/${templateId}/tasks`);
   }
 
-  async createThreadFromTemplate(templateId, threadData) {
-    return this.request('/api/threads/from-template', {
+  async createTaskTemplate(templateId, data) {
+    return this.request(`/api/templates/${templateId}/tasks`, {
       method: 'POST',
-      body: JSON.stringify({ template_id: templateId, ...threadData })
+      body: JSON.stringify(data)
+    });
+  }
+
+  async updateTaskTemplate(id, data) {
+    return this.request(`/api/task-templates/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async deleteTaskTemplate(id) {
+    return this.request(`/api/task-templates/${id}`, {
+      method: 'DELETE'
+    });
+  }
+
+  // ========== APPLY TEMPLATE ==========
+
+  async applyTemplate(templateId, { project_id, title_suffix, start_date, due_date }) {
+    return this.request(`/api/templates/${templateId}/apply`, {
+      method: 'POST',
+      body: JSON.stringify({ project_id, title_suffix, start_date, due_date })
     });
   }
 }
