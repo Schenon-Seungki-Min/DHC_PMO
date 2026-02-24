@@ -69,6 +69,13 @@ class APIClient {
     });
   }
 
+  async reorderProjects(orderedIds) {
+    return this.request('/api/projects/reorder', {
+      method: 'PUT',
+      body: JSON.stringify({ orderedIds })
+    });
+  }
+
   // ========== THREADS ==========
 
   async getAllThreads(filters = {}) {
@@ -98,6 +105,13 @@ class APIClient {
   async deleteThread(id) {
     return this.request(`/api/threads/${id}`, {
       method: 'DELETE'
+    });
+  }
+
+  async reorderThreads(orderedIds) {
+    return this.request('/api/threads/reorder', {
+      method: 'PUT',
+      body: JSON.stringify({ orderedIds })
     });
   }
 

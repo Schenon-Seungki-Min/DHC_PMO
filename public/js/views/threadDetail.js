@@ -307,9 +307,32 @@ class ThreadDetailView {
     </button>`;
   }
 
+  /** assignee_id 필드에서 담당자 배열 추출 (쉼표 구분) */
+  _getTaskAssignees(task) {
+    if (!task.assignee_id) return [];
+    return task.assignee_id.split(',').map(id => this.members.find(m => m.id === id)).filter(Boolean);
+  }
+
+  /** 다중 담당자 dot + 이름 렌더링 */
+  _renderTaskAssignees(assignees, extraText = '') {
+    if (assignees.length === 0) return '';
+    return `
+      <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-600 mt-1">
+        ${assignees.map(m => `
+          <span class="flex items-center gap-1">
+            <span class="w-2 h-2 rounded-full shrink-0" style="${Helpers.getMemberDotStyle(m.color)}"></span>
+            <span>${Helpers.escapeHtml(m.name)}</span>
+          </span>
+        `).join('')}
+        ${extraText ? `<span class="text-gray-400">${Helpers.escapeHtml(extraText)}</span>` : ''}
+      </div>
+    `;
+  }
+
   renderCompletedTask(task) {
-    const assignee = task.assignee_id ? this.members.find(m => m.id === task.assignee_id) : null;
+    const assignees = this._getTaskAssignees(task);
     const notes = task.notes ? Helpers.escapeHtml(task.notes.slice(0, 30)) : '';
+    const completedText = task.completed_at ? `· ${Helpers.formatDate(task.completed_at)} 완료` : '';
 
     return `
       <div class="p-4 border-2 rounded-xl bg-gray-50 opacity-75">
@@ -319,12 +342,7 @@ class ThreadDetailView {
             <div class="flex-1">
               <div class="line-through text-gray-500 font-medium">${Helpers.escapeHtml(task.title)}</div>
               ${notes ? `<div class="text-xs text-gray-400 mt-0.5">${notes}</div>` : ''}
-              ${assignee ? `
-                <div class="flex items-center gap-2 text-xs text-gray-400 mt-1">
-                  <span class="w-2 h-2 rounded-full" style="${Helpers.getMemberDotStyle(assignee.color)}"></span>
-                  <span>${Helpers.escapeHtml(assignee.name)} · ${task.completed_at ? Helpers.formatDate(task.completed_at) : ''} 완료</span>
-                </div>
-              ` : ''}
+              ${assignees.length > 0 ? this._renderTaskAssignees(assignees, completedText) : ''}
             </div>
           </div>
           <div class="flex flex-col gap-1.5 items-end shrink-0">
@@ -337,7 +355,7 @@ class ThreadDetailView {
   }
 
   renderInProgressTask(task) {
-    const assignee = task.assignee_id ? this.members.find(m => m.id === task.assignee_id) : null;
+    const assignees = this._getTaskAssignees(task);
     const dDay = Helpers.calculateDDay(task.due_date);
     const notes = task.notes ? Helpers.escapeHtml(task.notes.slice(0, 30)) : '';
 
@@ -349,12 +367,7 @@ class ThreadDetailView {
             <div class="flex-1">
               <div class="font-bold text-gray-900">${Helpers.escapeHtml(task.title)}</div>
               ${notes ? `<div class="text-xs text-gray-500 mt-0.5">${notes}</div>` : ''}
-              ${assignee ? `
-                <div class="flex items-center gap-2 text-xs text-gray-600 mt-1">
-                  <span class="w-2.5 h-2.5 rounded-full shadow-sm" style="${Helpers.getMemberDotStyle(assignee.color)}"></span>
-                  <span class="font-semibold">${Helpers.escapeHtml(assignee.name)}</span>
-                </div>
-              ` : `<div class="text-xs text-gray-400 mt-1">미배정</div>`}
+              ${assignees.length > 0 ? this._renderTaskAssignees(assignees) : `<div class="text-xs text-gray-400 mt-1">미배정</div>`}
             </div>
           </div>
           <div class="flex flex-col gap-1.5 items-end shrink-0">
@@ -368,7 +381,7 @@ class ThreadDetailView {
   }
 
   renderPendingTask(task) {
-    const assignee = task.assignee_id ? this.members.find(m => m.id === task.assignee_id) : null;
+    const assignees = this._getTaskAssignees(task);
     const dDay = Helpers.calculateDDay(task.due_date);
     const notes = task.notes ? Helpers.escapeHtml(task.notes.slice(0, 30)) : '';
 
@@ -380,7 +393,7 @@ class ThreadDetailView {
             <div class="flex-1">
               <div class="font-semibold text-gray-900">${Helpers.escapeHtml(task.title)}</div>
               ${notes ? `<div class="text-xs text-gray-500 mt-0.5">${notes}</div>` : ''}
-              <div class="text-xs text-gray-400 mt-1">${assignee ? Helpers.escapeHtml(assignee.name) : '미배정'}</div>
+              ${assignees.length > 0 ? this._renderTaskAssignees(assignees) : `<div class="text-xs text-gray-400 mt-1">미배정</div>`}
             </div>
           </div>
           <div class="flex flex-col gap-1.5 items-end shrink-0">
@@ -717,9 +730,53 @@ class ThreadDetailView {
     }
   }
 
+  /** Chip 기반 다중 담당자 선택 UI 생성 (모달 내부용) */
+  _setupAssigneeChips(containerId, selectId, initialIds = []) {
+    const selectedIds = [...initialIds];
+    const container = document.getElementById(containerId);
+    const select = document.getElementById(selectId);
+
+    const render = () => {
+      // Chip 렌더링
+      container.innerHTML = selectedIds.map(id => {
+        const m = this.members.find(mm => mm.id === id);
+        if (!m) return '';
+        return `<span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold text-white shadow-sm" style="${Helpers.getMemberBgStyle(m.color)}">
+          ${Helpers.escapeHtml(m.name)}
+          <button type="button" class="chip-remove ml-0.5 hover:opacity-70" data-id="${id}">&times;</button>
+        </span>`;
+      }).join('');
+
+      // 드롭다운에서 이미 선택된 멤버 숨기기
+      Array.from(select.options).forEach(opt => {
+        if (opt.value) opt.hidden = selectedIds.includes(opt.value);
+      });
+
+      // chip 제거 버튼 이벤트
+      container.querySelectorAll('.chip-remove').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const idx = selectedIds.indexOf(btn.dataset.id);
+          if (idx !== -1) selectedIds.splice(idx, 1);
+          render();
+        });
+      });
+    };
+
+    select.addEventListener('change', () => {
+      if (select.value && !selectedIds.includes(select.value)) {
+        selectedIds.push(select.value);
+        render();
+      }
+      select.value = '';
+    });
+
+    render();
+    return () => [...selectedIds]; // getter 함수 반환
+  }
+
   showAddTaskModal() {
     const today = new Date().toISOString().split('T')[0];
-    const memberOptions = `<option value="">미배정</option>` +
+    const memberOptions = `<option value="">+ 멤버 추가</option>` +
       this.members.map(m =>
         `<option value="${m.id}">${Helpers.escapeHtml(m.name)}</option>`
       ).join('');
@@ -739,6 +796,7 @@ class ThreadDetailView {
         </div>
         <div>
           <label class="block text-sm font-semibold text-gray-700 mb-1">담당자</label>
+          <div id="m-assignee-chips" class="flex flex-wrap gap-1.5 mb-2 min-h-[28px]"></div>
           <select id="m-task-assignee" class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-400 focus:outline-none">
             ${memberOptions}
           </select>
@@ -756,6 +814,8 @@ class ThreadDetailView {
       </div>
     `);
 
+    const getSelectedIds = this._setupAssigneeChips('m-assignee-chips', 'm-task-assignee');
+
     document.getElementById('m-task-notes').addEventListener('input', function() {
       document.getElementById('m-notes-count').textContent = this.value.length;
     });
@@ -764,11 +824,13 @@ class ThreadDetailView {
     document.getElementById('m-submit').onclick = async () => {
       const title = document.getElementById('m-task-title').value.trim();
       const dueDate = document.getElementById('m-task-due').value;
-      const assigneeId = document.getElementById('m-task-assignee').value;
+      const assigneeIds = getSelectedIds();
       const notes = document.getElementById('m-task-notes').value.trim();
 
       if (!title) { alert('제목을 입력해주세요.'); return; }
       if (!dueDate) { alert('마감일을 선택해주세요.'); return; }
+
+      const assigneeId = assigneeIds.length > 0 ? assigneeIds.join(',') : null;
 
       Helpers.closeModal();
       try {
@@ -776,7 +838,7 @@ class ThreadDetailView {
           id: `task-${Date.now()}`,
           thread_id: this.currentThread.id,
           title,
-          assignee_id: assigneeId || null,
+          assignee_id: assigneeId,
           due_date: dueDate,
           status: assigneeId ? 'in_progress' : 'pending',
           notes
@@ -792,9 +854,10 @@ class ThreadDetailView {
     const task = this.tasks.find(t => t.id === taskId);
     if (!task) return;
 
-    const memberOptions = `<option value="">미배정</option>` +
+    const currentIds = task.assignee_id ? task.assignee_id.split(',').filter(Boolean) : [];
+    const memberOptions = `<option value="">+ 멤버 추가</option>` +
       this.members.map(m =>
-        `<option value="${m.id}" ${m.id === task.assignee_id ? 'selected' : ''}>${Helpers.escapeHtml(m.name)}</option>`
+        `<option value="${m.id}">${Helpers.escapeHtml(m.name)}</option>`
       ).join('');
 
     const dueVal = task.due_date ? task.due_date.split('T')[0] : '';
@@ -815,6 +878,7 @@ class ThreadDetailView {
         </div>
         <div>
           <label class="block text-sm font-semibold text-gray-700 mb-1">담당자</label>
+          <div id="m-edit-assignee-chips" class="flex flex-wrap gap-1.5 mb-2 min-h-[28px]"></div>
           <select id="m-edit-assignee" class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-400 focus:outline-none">
             ${memberOptions}
           </select>
@@ -832,6 +896,8 @@ class ThreadDetailView {
       </div>
     `);
 
+    const getSelectedIds = this._setupAssigneeChips('m-edit-assignee-chips', 'm-edit-assignee', currentIds);
+
     document.getElementById('m-edit-notes').addEventListener('input', function() {
       document.getElementById('m-enotes-count').textContent = this.value.length;
     });
@@ -840,12 +906,13 @@ class ThreadDetailView {
     document.getElementById('m-submit').onclick = async () => {
       const title = document.getElementById('m-edit-title').value.trim();
       const dueDate = document.getElementById('m-edit-due').value;
-      const assigneeId = document.getElementById('m-edit-assignee').value;
+      const assigneeIds = getSelectedIds();
       const notes = document.getElementById('m-edit-notes').value.trim();
 
       if (!title) { alert('제목을 입력해주세요.'); return; }
 
-      const updates = { title, due_date: dueDate, assignee_id: assigneeId || null, notes };
+      const assigneeId = assigneeIds.length > 0 ? assigneeIds.join(',') : null;
+      const updates = { title, due_date: dueDate, assignee_id: assigneeId, notes };
 
       Helpers.closeModal();
       try {

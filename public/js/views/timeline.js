@@ -243,13 +243,14 @@ class TimelineView {
         ? threads.map(thread => {
             const threadAssignments = this.assignments[thread.id] || [];
             const bar = new ThreadBar(thread, threadAssignments, this.members, timelineStart, timelineEnd);
-            return bar.render();
+            return `<div class="drag-thread" draggable="true" data-thread-id="${thread.id}" data-project-id="${pid}">${bar.render()}</div>`;
           }).join('')
         : `<div class="text-xs text-gray-400 italic py-1.5 px-2">Thread 없음</div>`;
 
       return `
-        <div class="mb-2">
-          <div class="flex items-center gap-1.5 mb-1 px-1 group/proj">
+        <div class="mb-2 drag-project" draggable="true" data-project-id="${pid}">
+          <div class="flex items-center gap-1.5 mb-1 px-1 group/proj drag-project-handle">
+            <div class="drag-grip text-gray-300 hover:text-gray-500 cursor-grab text-xs mr-0.5" title="드래그하여 순서 변경">⠿</div>
             <div class="w-1 h-4 rounded-full bg-blue-500"></div>
             <span class="text-xs font-bold text-gray-700">${Helpers.escapeHtml(projectName)}</span>
             <span class="text-[10px] text-gray-400 font-medium">${threads.length}개</span>
@@ -260,7 +261,7 @@ class TimelineView {
               <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
             </button>
           </div>
-          <div class="space-y-1">
+          <div class="space-y-1 drag-thread-container" data-project-id="${pid}">
             ${threadBars}
           </div>
         </div>
@@ -399,6 +400,143 @@ class TimelineView {
           const project = this.projects ? this.projects.find(p => p.id === thread.project_id) : null;
           window.app.currentProject = project;
           window.app.showThreadDetail(thread);
+        }
+      });
+    });
+
+    // ========== 드래그 & 드롭 ==========
+    this._attachDragListeners();
+  }
+
+  /**
+   * 드래그 & 드롭 이벤트 리스너
+   */
+  _attachDragListeners() {
+    let dragType = null; // 'project' or 'thread'
+    let dragId = null;
+    let dragProjectId = null;
+
+    // --- 프로젝트 드래그 ---
+    document.querySelectorAll('.drag-project').forEach(el => {
+      // 프로젝트 헤더(handle)에서만 드래그 시작
+      const handle = el.querySelector('.drag-project-handle');
+      el.draggable = false; // 기본 비활성
+
+      handle.addEventListener('mousedown', () => { el.draggable = true; });
+      handle.addEventListener('mouseup', () => { el.draggable = false; });
+
+      el.addEventListener('dragstart', (e) => {
+        // thread 드래그가 버블링으로 올라오는 경우 무시
+        if (e.target !== el) return;
+        dragType = 'project';
+        dragId = el.dataset.projectId;
+        el.classList.add('opacity-40');
+        e.dataTransfer.effectAllowed = 'move';
+      });
+
+      el.addEventListener('dragend', (e) => {
+        el.classList.remove('opacity-40');
+        el.draggable = false;
+        document.querySelectorAll('.drag-over-project').forEach(d => d.classList.remove('drag-over-project'));
+        dragType = null;
+        dragId = null;
+      });
+
+      el.addEventListener('dragover', (e) => {
+        if (dragType !== 'project') return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        // 시각적 드롭 위치 표시
+        document.querySelectorAll('.drag-over-project').forEach(d => d.classList.remove('drag-over-project'));
+        el.classList.add('drag-over-project');
+      });
+
+      el.addEventListener('drop', async (e) => {
+        if (dragType !== 'project') return;
+        e.preventDefault();
+        el.classList.remove('drag-over-project');
+
+        const targetId = el.dataset.projectId;
+        if (dragId === targetId) return;
+
+        // 순서 계산
+        const container = document.getElementById('thread-bars');
+        const projectEls = [...container.querySelectorAll('.drag-project')];
+        const ids = projectEls.map(p => p.dataset.projectId);
+
+        const fromIdx = ids.indexOf(dragId);
+        const toIdx = ids.indexOf(targetId);
+        if (fromIdx === -1 || toIdx === -1) return;
+
+        ids.splice(fromIdx, 1);
+        ids.splice(toIdx, 0, dragId);
+
+        try {
+          await this.apiClient.reorderProjects(ids);
+          await this.render(this.container, this.currentProject);
+        } catch (error) {
+          console.error('Project reorder failed:', error);
+        }
+      });
+    });
+
+    // --- Thread 드래그 (같은 프로젝트 내) ---
+    document.querySelectorAll('.drag-thread').forEach(el => {
+      el.addEventListener('dragstart', (e) => {
+        e.stopPropagation(); // 프로젝트 드래그로 전파 방지
+        dragType = 'thread';
+        dragId = el.dataset.threadId;
+        dragProjectId = el.dataset.projectId;
+        el.classList.add('opacity-40');
+        e.dataTransfer.effectAllowed = 'move';
+      });
+
+      el.addEventListener('dragend', () => {
+        el.classList.remove('opacity-40');
+        document.querySelectorAll('.drag-over-thread').forEach(d => d.classList.remove('drag-over-thread'));
+        dragType = null;
+        dragId = null;
+        dragProjectId = null;
+      });
+
+      el.addEventListener('dragover', (e) => {
+        if (dragType !== 'thread') return;
+        // 같은 프로젝트 내에서만 허용
+        if (el.dataset.projectId !== dragProjectId) return;
+        e.preventDefault();
+        e.stopPropagation();
+        e.dataTransfer.dropEffect = 'move';
+        document.querySelectorAll('.drag-over-thread').forEach(d => d.classList.remove('drag-over-thread'));
+        el.classList.add('drag-over-thread');
+      });
+
+      el.addEventListener('drop', async (e) => {
+        if (dragType !== 'thread') return;
+        if (el.dataset.projectId !== dragProjectId) return;
+        e.preventDefault();
+        e.stopPropagation();
+        el.classList.remove('drag-over-thread');
+
+        const targetId = el.dataset.threadId;
+        if (dragId === targetId) return;
+
+        // 같은 프로젝트 내 Thread 순서 계산
+        const threadContainer = el.closest('.drag-thread-container');
+        const threadEls = [...threadContainer.querySelectorAll('.drag-thread')];
+        const ids = threadEls.map(t => t.dataset.threadId);
+
+        const fromIdx = ids.indexOf(dragId);
+        const toIdx = ids.indexOf(targetId);
+        if (fromIdx === -1 || toIdx === -1) return;
+
+        ids.splice(fromIdx, 1);
+        ids.splice(toIdx, 0, dragId);
+
+        try {
+          await this.apiClient.reorderThreads(ids);
+          await this.render(this.container, this.currentProject);
+        } catch (error) {
+          console.error('Thread reorder failed:', error);
         }
       });
     });

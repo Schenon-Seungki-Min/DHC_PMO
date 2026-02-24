@@ -17,6 +17,7 @@ class DataService {
     const { data, error } = await supabase
       .from('projects')
       .select('*')
+      .order('sort_order', { ascending: true })
       .order('created_at', { ascending: true });
     if (error) throw new Error(error.message);
     return data;
@@ -64,13 +65,24 @@ class DataService {
     return true;
   }
 
+  async reorderProjects(orderedIds) {
+    for (let i = 0; i < orderedIds.length; i++) {
+      const { error } = await supabase
+        .from('projects')
+        .update({ sort_order: i })
+        .eq('id', orderedIds[i]);
+      if (error) throw new Error(error.message);
+    }
+    return true;
+  }
+
   // ========== THREADS ==========
 
   async getAllThreads(filters = {}) {
     let query = supabase.from('threads').select('*');
     if (filters.project_id) query = query.eq('project_id', filters.project_id);
     if (filters.status) query = query.eq('status', filters.status);
-    query = query.order('created_at', { ascending: true });
+    query = query.order('sort_order', { ascending: true }).order('created_at', { ascending: true });
     const { data, error } = await query;
     if (error) throw new Error(error.message);
     return data;
@@ -118,12 +130,23 @@ class DataService {
     return true;
   }
 
+  async reorderThreads(orderedIds) {
+    for (let i = 0; i < orderedIds.length; i++) {
+      const { error } = await supabase
+        .from('threads')
+        .update({ sort_order: i })
+        .eq('id', orderedIds[i]);
+      if (error) throw new Error(error.message);
+    }
+    return true;
+  }
+
   // ========== TASKS ==========
 
   async getAllTasks(filters = {}) {
     let query = supabase.from('tasks').select('*');
     if (filters.thread_id) query = query.eq('thread_id', filters.thread_id);
-    if (filters.assignee_id) query = query.eq('assignee_id', filters.assignee_id);
+    if (filters.assignee_id) query = query.like('assignee_id', `%${filters.assignee_id}%`);
     if (filters.status) query = query.eq('status', filters.status);
     query = query.order('created_at', { ascending: true });
     const { data, error } = await query;
