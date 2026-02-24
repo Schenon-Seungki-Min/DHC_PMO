@@ -257,15 +257,12 @@ class PeopleView {
    * 멤버 카드 렌더링
    */
   renderMemberCard(member, info) {
-    const colorClass = Helpers.getMemberColorClass(member.role);
-    const dotClass = Helpers.getMemberDotClass(member.role);
-
     return `
       <div class="card-modern p-5 md:p-6">
         <!-- Member Header -->
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-5">
           <div class="flex items-center gap-3">
-            <div class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md ${colorClass}">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md" style="${Helpers.getMemberBgStyle(member.color)}">
               ${member.name.charAt(0)}
             </div>
             <div>
@@ -300,7 +297,7 @@ class PeopleView {
         <!-- Thread List -->
         ${info.threadInfos.length > 0 ? `
           <div class="space-y-3 mb-4">
-            ${info.threadInfos.map(ti => this.renderThreadInfo(ti, dotClass)).join('')}
+            ${info.threadInfos.map(ti => this.renderThreadInfo(ti, member)).join('')}
           </div>
         ` : `
           <div class="text-sm text-gray-500 text-center py-4 mb-4">담당 Thread가 없습니다.</div>
@@ -312,7 +309,7 @@ class PeopleView {
     `;
   }
 
-  renderThreadInfo(threadInfo, dotClass) {
+  renderThreadInfo(threadInfo, member) {
     const { thread, dDay, role } = threadInfo;
 
     let borderClass = 'border-gray-200';
@@ -329,7 +326,7 @@ class PeopleView {
     return `
       <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-3 ${bgClass} rounded-xl border-2 ${borderClass}">
         <div class="flex items-center gap-2 flex-wrap">
-          <span class="w-3 h-3 rounded-full ${dotClass} shadow-sm"></span>
+          <span class="w-3 h-3 rounded-full shadow-sm" style="${Helpers.getMemberDotStyle(member.color)}"></span>
           <span class="font-semibold text-gray-900">${Helpers.escapeHtml(thread.title)}</span>
           <span class="badge ${role === 'lead' ? 'bg-blue-100 text-blue-800' : 'bg-gray-200 text-gray-700'}">${role}</span>
         </div>

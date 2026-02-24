@@ -176,7 +176,7 @@ class ThreadDetailView {
       return `
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-xl border-2 ${borderClass}">
           <div class="flex items-center gap-3 mb-2 sm:mb-0">
-            <div class="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-md ${Helpers.getMemberColorClass(member.role)}">
+            <div class="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-md" style="${Helpers.getMemberBgStyle(member.color)}">
               ${member.name.charAt(0)}
             </div>
             <div>
@@ -225,7 +225,7 @@ class ThreadDetailView {
   renderHistoryItem(item, index) {
     const member = this.members.find(m => m.id === item.member_id);
     const memberName = member ? member.name : '알 수 없음';
-    const dotClass = member ? Helpers.getMemberDotClass(member.role) : 'bg-gray-400';
+    const dotStyle = member ? Helpers.getMemberDotStyle(member.color) : 'background: #9CA3AF;';
 
     const isGrab = item.eventType === 'grab';
     const title = isGrab ? `${memberName} grab (${item.role})` : `${memberName} release`;
@@ -240,7 +240,7 @@ class ThreadDetailView {
 
     return `
       <div class="flex items-start gap-4">
-        <div class="timeline-dot ${dotClass} z-10 mt-2 shadow-md"></div>
+        <div class="timeline-dot z-10 mt-2 shadow-md" style="${dotStyle}"></div>
         <div class="flex-1 p-4 rounded-xl border-2 ${borderClass} ${bgClass}">
           <div class="flex flex-col sm:flex-row justify-between gap-2">
             <span class="font-bold text-gray-900">${Helpers.escapeHtml(title)}</span>
@@ -311,7 +311,7 @@ class ThreadDetailView {
               ${notes ? `<div class="text-xs text-gray-400 mt-0.5">${notes}</div>` : ''}
               ${assignee ? `
                 <div class="flex items-center gap-2 text-xs text-gray-400 mt-1">
-                  <span class="w-2 h-2 rounded-full ${Helpers.getMemberDotClass(assignee.role)}"></span>
+                  <span class="w-2 h-2 rounded-full" style="${Helpers.getMemberDotStyle(assignee.color)}"></span>
                   <span>${Helpers.escapeHtml(assignee.name)} · ${task.completed_at ? Helpers.formatDate(task.completed_at) : ''} 완료</span>
                 </div>
               ` : ''}
@@ -338,7 +338,7 @@ class ThreadDetailView {
               ${notes ? `<div class="text-xs text-gray-500 mt-0.5">${notes}</div>` : ''}
               ${assignee ? `
                 <div class="flex items-center gap-2 text-xs text-gray-600 mt-1">
-                  <span class="w-2.5 h-2.5 rounded-full ${Helpers.getMemberDotClass(assignee.role)} shadow-sm"></span>
+                  <span class="w-2.5 h-2.5 rounded-full shadow-sm" style="${Helpers.getMemberDotStyle(assignee.color)}"></span>
                   <span class="font-semibold">${Helpers.escapeHtml(assignee.name)}</span>
                 </div>
               ` : `<div class="text-xs text-gray-400 mt-1">미배정</div>`}

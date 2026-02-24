@@ -110,7 +110,7 @@ class ThreadBar {
       const { member, role } = uniqueMembers[0];
       const displayName = role === 'lead' ? member.name : member.name.charAt(0);
       return `
-        <div class="member-segment ${Helpers.getMemberColorClass(member.role)}" style="width: 100%;">
+        <div class="member-segment" style="width: 100%; ${Helpers.getMemberBgStyle(member.color)}">
           ${Helpers.escapeHtml(displayName)}
         </div>
       `;
@@ -121,8 +121,8 @@ class ThreadBar {
     const bands = uniqueMembers.map(({ member, role }) => {
       const label = `${member.name.charAt(0)} ${role === 'lead' ? '(L)' : ''}`.trim();
       return `
-        <div class="member-band ${Helpers.getMemberColorClass(member.role)}"
-             style="height: ${bandHeight}%;"
+        <div class="member-band"
+             style="height: ${bandHeight}%; ${Helpers.getMemberBgStyle(member.color)}"
              title="${Helpers.escapeHtml(member.name)} (${role})">
           ${Helpers.escapeHtml(label)}
         </div>
