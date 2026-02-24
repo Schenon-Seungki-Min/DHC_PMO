@@ -153,7 +153,7 @@ class TimelineView {
               <span class="font-bold text-gray-900">담당자:</span>
               ${this.members.map(member => `
                 <span class="flex items-center gap-1.5">
-                  <span class="w-3 h-3 rounded-full ${Helpers.getMemberDotClass(member.role)} shadow-sm"></span>
+                  <span class="w-3 h-3 rounded-full shadow-sm" style="${Helpers.getMemberDotStyle(member.color)}"></span>
                   ${Helpers.escapeHtml(member.name)}
                 </span>
               `).join('')}
@@ -276,7 +276,7 @@ class TimelineView {
       return `
         <div class="border-b border-gray-100 pb-3">
           <div class="flex items-center gap-2 mb-2">
-            <span class="w-4 h-4 rounded-full ${Helpers.getMemberDotClass(member.role)} shadow-sm"></span>
+            <span class="w-4 h-4 rounded-full shadow-sm" style="${Helpers.getMemberDotStyle(member.color)}"></span>
             <span class="font-bold text-gray-800">${Helpers.escapeHtml(member.name)}</span>
           </div>
           <div class="text-sm text-gray-600 mb-2">Thread ${threadWithDays.length}개</div>

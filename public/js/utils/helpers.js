@@ -127,31 +127,37 @@ const Helpers = {
   // ========== 멤버 색상 ==========
 
   /**
-   * 멤버 역할별 배경 색상 클래스 (그라데이션)
-   * @param {string} role - pm | intern | member
-   * @returns {string}
+   * hex 색상을 일정 비율 어둡게 만들기
+   * @param {string} hex - "#RRGGBB"
+   * @param {number} percent - 어둡게 할 비율 (0~100)
+   * @returns {string} 어두워진 hex
    */
-  getMemberColorClass(role) {
-    const map = {
-      'pm':     'color-coree',
-      'intern': 'color-intern-a',
-      'member': 'color-kim'
-    };
-    return map[role] || 'color-intern-b';
+  darkenColor(hex, percent) {
+    const num = parseInt(hex.replace('#', ''), 16);
+    const amt = Math.round(255 * percent / 100);
+    const r = Math.max(0, (num >> 16) - amt);
+    const g = Math.max(0, ((num >> 8) & 0xFF) - amt);
+    const b = Math.max(0, (num & 0xFF) - amt);
+    return `#${(r << 16 | g << 8 | b).toString(16).padStart(6, '0')}`;
   },
 
   /**
-   * 멤버 역할별 dot 색상 클래스
-   * @param {string} role
-   * @returns {string}
+   * 멤버 개인 색상으로 그라데이션 배경 inline style 생성
+   * @param {string} hexColor - 멤버의 color 필드 (hex)
+   * @returns {string} inline style 문자열
    */
-  getMemberDotClass(role) {
-    const map = {
-      'pm':     'dot-coree',
-      'intern': 'dot-intern-a',
-      'member': 'dot-kim'
-    };
-    return map[role] || 'dot-intern-b';
+  getMemberBgStyle(hexColor) {
+    const color = hexColor || '#6B7280';
+    return `background: linear-gradient(135deg, ${color} 0%, ${this.darkenColor(color, 15)} 100%);`;
+  },
+
+  /**
+   * 멤버 개인 색상으로 dot 배경 inline style 생성
+   * @param {string} hexColor - 멤버의 color 필드 (hex)
+   * @returns {string} inline style 문자열
+   */
+  getMemberDotStyle(hexColor) {
+    return `background: ${hexColor || '#6B7280'};`;
   },
 
   // ========== 번역 ==========
