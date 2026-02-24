@@ -127,6 +127,23 @@ const Helpers = {
   // ========== 멤버 색상 ==========
 
   /**
+   * DB 기본값(#374151)인 멤버에게 팔레트 기반 고유 색상 자동 배정
+   * 이미 개인 색상이 설정된 멤버는 건드리지 않음
+   */
+  autoAssignColors(members) {
+    const DEFAULT = '#374151';
+    const PALETTE = ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#EC4899', '#06B6D4', '#F97316'];
+    let idx = 0;
+    members.forEach(m => {
+      if (!m.color || m.color === DEFAULT) {
+        m.color = PALETTE[idx % PALETTE.length];
+        idx++;
+      }
+    });
+    return members;
+  },
+
+  /**
    * hex 색상을 일정 비율 어둡게 만들기
    * @param {string} hex - "#RRGGBB"
    * @param {number} percent - 어둡게 할 비율 (0~100)

@@ -210,6 +210,30 @@ app.post('/api/threads/:id/release', async (req, res) => {
   }
 });
 
+app.put('/api/assignments/:id', async (req, res) => {
+  try {
+    const updated = await dataService.updateAssignment(req.params.id, req.body);
+    if (!updated) {
+      return res.status(404).json({ error: 'Assignment not found' });
+    }
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete('/api/assignments/:id', async (req, res) => {
+  try {
+    const deleted = await dataService.deleteAssignment(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ error: 'Assignment not found' });
+    }
+    res.json({ message: 'Assignment deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.get('/api/threads/:id/history', async (req, res) => {
   try {
     const history = await dataService.getThreadAssignments(req.params.id);

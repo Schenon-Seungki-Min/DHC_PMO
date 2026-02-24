@@ -54,6 +54,7 @@ class TimelineView {
       : allThreads;
 
     this.members = await this.apiClient.getAllMembers();
+    Helpers.autoAssignColors(this.members);
 
     this.assignments = {};
     for (const thread of this.threads) {

@@ -39,6 +39,7 @@ class PeopleView {
    */
   async loadData() {
     this.members = await this.apiClient.getAllMembers();
+    Helpers.autoAssignColors(this.members);
     this.threads = await this.apiClient.getAllThreads();
     this.tasks = await this.apiClient.getAllTasks();
     this.projects = await this.apiClient.getAllProjects();
