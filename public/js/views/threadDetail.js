@@ -48,7 +48,7 @@ class ThreadDetailView {
     this.tasks = allTasks.filter(t => t.thread_id === this.currentThread.id);
 
     this.members = await this.apiClient.getAllMembers();
-    Helpers.autoAssignColors(this.members);
+    await Helpers.autoAssignColors(this.members, this.apiClient);
 
     this.history = await this.apiClient.getThreadHistory(this.currentThread.id);
   }
