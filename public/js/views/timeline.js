@@ -90,6 +90,9 @@ class TimelineView {
           </div>
         </div>
         <div class="flex flex-wrap gap-2 w-full lg:w-auto">
+          <button id="btn-new-project" class="px-4 py-2.5 rounded-lg text-sm font-semibold border-2 border-gray-300 text-gray-700 hover:border-blue-400 hover:text-blue-700 transition flex-1 sm:flex-none">
+            + 프로젝트
+          </button>
           <button id="btn-export-excel" class="btn-success text-white px-4 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 flex-1 sm:flex-none justify-center">
             Excel 내보내기
           </button>
@@ -239,10 +242,16 @@ class TimelineView {
 
       return `
         <div class="mb-4">
-          <div class="flex items-center gap-2 mb-2 px-1">
+          <div class="flex items-center gap-2 mb-2 px-1 group/proj">
             <div class="w-1.5 h-5 rounded-full bg-blue-500"></div>
             <span class="text-sm font-bold text-gray-700">${Helpers.escapeHtml(projectName)}</span>
             <span class="text-xs text-gray-400 font-medium">${threads.length}개</span>
+            <button class="btn-edit-project text-gray-400 hover:text-blue-600 opacity-0 group-hover/proj:opacity-100 transition-opacity" data-project-id="${pid}" title="프로젝트 수정">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+            </button>
+            <button class="btn-delete-project text-gray-400 hover:text-red-600 opacity-0 group-hover/proj:opacity-100 transition-opacity" data-project-id="${pid}" title="프로젝트 삭제">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+            </button>
           </div>
           <div class="space-y-3">
             ${threadBars}
@@ -343,6 +352,28 @@ class TimelineView {
       btnExport.addEventListener('click', () => this.exportToExcel());
     }
 
+    // 프로젝트 추가
+    const btnNewProject = document.getElementById('btn-new-project');
+    if (btnNewProject) {
+      btnNewProject.addEventListener('click', () => this.showNewProjectModal());
+    }
+
+    // 프로젝트 수정
+    document.querySelectorAll('.btn-edit-project').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.showEditProjectModal(btn.dataset.projectId);
+      });
+    });
+
+    // 프로젝트 삭제
+    document.querySelectorAll('.btn-delete-project').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.deleteProject(btn.dataset.projectId);
+      });
+    });
+
     // 상태 필터 버튼
     document.querySelectorAll('.filter-status-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -403,6 +434,108 @@ class TimelineView {
   goToday() {
     this.currentWeekStart = this.getMonday(new Date());
     this.render(this.container, this.currentProject);
+  }
+
+  // ========== 프로젝트 관리 ==========
+
+  showNewProjectModal() {
+    Helpers.showModal(`
+      <h3 class="text-lg font-bold text-gray-900 mb-5">프로젝트 추가</h3>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">이름 <span class="text-red-500">*</span></label>
+          <input type="text" id="m-proj-name" placeholder="프로젝트 이름" maxlength="40"
+            class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-400 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">목표</label>
+          <input type="text" id="m-proj-objective" placeholder="프로젝트 목표 (선택)" maxlength="100"
+            class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-400 focus:outline-none">
+        </div>
+      </div>
+      <div class="flex gap-3 mt-6">
+        <button id="m-cancel" class="flex-1 py-2.5 rounded-xl border-2 border-gray-200 text-gray-700 font-semibold text-sm hover:bg-gray-50 transition">취소</button>
+        <button id="m-submit" class="flex-1 py-2.5 rounded-xl btn-primary text-white font-semibold text-sm">추가</button>
+      </div>
+    `);
+    document.getElementById('m-cancel').onclick = () => Helpers.closeModal();
+    document.getElementById('m-submit').onclick = async () => {
+      const name = document.getElementById('m-proj-name').value.trim();
+      const objective = document.getElementById('m-proj-objective').value.trim();
+      if (!name) { alert('이름을 입력해주세요.'); return; }
+      Helpers.closeModal();
+      try {
+        await this.apiClient.createProject({ id: `proj-${Date.now()}`, name, objective: objective || null, status: 'active' });
+        await this.render(this.container, this.currentProject);
+      } catch (error) {
+        alert('프로젝트 추가 실패: ' + error.message);
+      }
+    };
+  }
+
+  showEditProjectModal(projectId) {
+    const project = this.projects.find(p => p.id === projectId);
+    if (!project) return;
+
+    const statusOptions = ['active', 'on_hold', 'completed'].map(s =>
+      `<option value="${s}" ${s === project.status ? 'selected' : ''}>${Helpers.translateStatus(s)}</option>`
+    ).join('');
+
+    Helpers.showModal(`
+      <h3 class="text-lg font-bold text-gray-900 mb-5">프로젝트 수정</h3>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">이름 <span class="text-red-500">*</span></label>
+          <input type="text" id="m-proj-name" value="${Helpers.escapeHtml(project.name)}" maxlength="40"
+            class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-400 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">목표</label>
+          <input type="text" id="m-proj-objective" value="${Helpers.escapeHtml(project.objective || '')}" maxlength="100"
+            class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-400 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">상태</label>
+          <select id="m-proj-status" class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-400 focus:outline-none">
+            ${statusOptions}
+          </select>
+        </div>
+      </div>
+      <div class="flex gap-3 mt-6">
+        <button id="m-cancel" class="flex-1 py-2.5 rounded-xl border-2 border-gray-200 text-gray-700 font-semibold text-sm hover:bg-gray-50 transition">취소</button>
+        <button id="m-submit" class="flex-1 py-2.5 rounded-xl btn-primary text-white font-semibold text-sm">저장</button>
+      </div>
+    `);
+    document.getElementById('m-cancel').onclick = () => Helpers.closeModal();
+    document.getElementById('m-submit').onclick = async () => {
+      const name = document.getElementById('m-proj-name').value.trim();
+      const objective = document.getElementById('m-proj-objective').value.trim();
+      const status = document.getElementById('m-proj-status').value;
+      if (!name) { alert('이름을 입력해주세요.'); return; }
+      Helpers.closeModal();
+      try {
+        await this.apiClient.updateProject(projectId, { name, objective: objective || null, status });
+        await this.render(this.container, this.currentProject);
+      } catch (error) {
+        alert('프로젝트 수정 실패: ' + error.message);
+      }
+    };
+  }
+
+  async deleteProject(projectId) {
+    const project = this.projects.find(p => p.id === projectId);
+    if (!project) return;
+    const threadCount = this.threads.filter(t => t.project_id === projectId).length;
+    const msg = threadCount > 0
+      ? `"${project.name}" 프로젝트를 삭제하시겠습니까?\n\n포함된 Thread ${threadCount}개도 함께 삭제됩니다.`
+      : `"${project.name}" 프로젝트를 삭제하시겠습니까?`;
+    if (!confirm(msg)) return;
+    try {
+      await this.apiClient.deleteProject(projectId);
+      await this.render(this.container, this.currentProject);
+    } catch (error) {
+      alert('프로젝트 삭제 실패: ' + error.message);
+    }
   }
 
   /**

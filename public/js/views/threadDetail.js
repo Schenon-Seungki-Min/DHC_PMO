@@ -277,6 +277,18 @@ class ThreadDetailView {
     }).join('');
   }
 
+  /** 상태 토글 버튼 그룹 (대기/진행중/완료) */
+  _statusToggle(task) {
+    const states = [
+      { value: 'pending',     label: '대기',   active: 'bg-gray-200 text-gray-700', inactive: 'text-gray-400 hover:bg-gray-100' },
+      { value: 'in_progress', label: '진행중', active: 'bg-blue-100 text-blue-700', inactive: 'text-gray-400 hover:bg-blue-50' },
+      { value: 'completed',   label: '완료',   active: 'bg-green-100 text-green-700', inactive: 'text-gray-400 hover:bg-green-50' }
+    ];
+    return `<div class="flex gap-0.5 rounded-lg border border-gray-200 p-0.5">${states.map(s =>
+      `<button class="btn-status-task px-2 py-0.5 text-xs rounded font-semibold transition-colors ${task.status === s.value ? s.active : s.inactive}" data-task-id="${task.id}" data-status="${s.value}">${s.label}</button>`
+    ).join('')}</div>`;
+  }
+
   /** 삭제 아이콘 SVG */
   _trashIcon(taskId) {
     return `<button class="btn-delete-task text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded transition" data-task-id="${taskId}" title="삭제">
@@ -305,10 +317,7 @@ class ThreadDetailView {
           <div class="flex items-start gap-3 flex-1">
             <span class="text-green-600 text-xl mt-0.5">\u2713</span>
             <div class="flex-1">
-              <div class="flex items-center gap-2">
-                <span class="line-through text-gray-500 font-medium">${Helpers.escapeHtml(task.title)}</span>
-                <span class="badge bg-green-100 text-green-700">완료</span>
-              </div>
+              <div class="line-through text-gray-500 font-medium">${Helpers.escapeHtml(task.title)}</div>
               ${notes ? `<div class="text-xs text-gray-400 mt-0.5">${notes}</div>` : ''}
               ${assignee ? `
                 <div class="flex items-center gap-2 text-xs text-gray-400 mt-1">
@@ -318,7 +327,10 @@ class ThreadDetailView {
               ` : ''}
             </div>
           </div>
-          <div class="flex gap-1 items-start">${this._trashIcon(task.id)}</div>
+          <div class="flex flex-col gap-1.5 items-end shrink-0">
+            ${this._statusToggle(task)}
+            <div class="flex gap-1">${this._editIcon(task.id)}${this._trashIcon(task.id)}</div>
+          </div>
         </div>
       </div>
     `;
@@ -335,10 +347,7 @@ class ThreadDetailView {
           <div class="flex items-start gap-3 flex-1">
             <span class="text-blue-600 text-xl font-bold mt-0.5">\u2192</span>
             <div class="flex-1">
-              <div class="flex items-center gap-2">
-                <span class="font-bold text-gray-900">${Helpers.escapeHtml(task.title)}</span>
-                <span class="badge bg-blue-100 text-blue-700">진행중</span>
-              </div>
+              <div class="font-bold text-gray-900">${Helpers.escapeHtml(task.title)}</div>
               ${notes ? `<div class="text-xs text-gray-500 mt-0.5">${notes}</div>` : ''}
               ${assignee ? `
                 <div class="flex items-center gap-2 text-xs text-gray-600 mt-1">
@@ -348,13 +357,10 @@ class ThreadDetailView {
               ` : `<div class="text-xs text-gray-400 mt-1">미배정</div>`}
             </div>
           </div>
-          <div class="flex flex-col gap-1 items-end shrink-0">
+          <div class="flex flex-col gap-1.5 items-end shrink-0">
             ${Helpers.renderDDayBadge(dDay)}
-            <div class="flex gap-1 items-center mt-1">
-              <button class="btn-complete-task text-xs text-green-600 hover:text-green-700 font-semibold px-2 py-1 hover:bg-green-50 rounded transition" data-task-id="${task.id}">완료</button>
-              ${this._editIcon(task.id)}
-              ${this._trashIcon(task.id)}
-            </div>
+            ${this._statusToggle(task)}
+            <div class="flex gap-1">${this._editIcon(task.id)}${this._trashIcon(task.id)}</div>
           </div>
         </div>
       </div>
@@ -372,21 +378,15 @@ class ThreadDetailView {
           <div class="flex items-start gap-3 flex-1">
             <span class="text-gray-400 text-xl mt-0.5">\u25CB</span>
             <div class="flex-1">
-              <div class="flex items-center gap-2">
-                <span class="font-semibold text-gray-900">${Helpers.escapeHtml(task.title)}</span>
-                <span class="badge bg-gray-100 text-gray-600">대기</span>
-              </div>
+              <div class="font-semibold text-gray-900">${Helpers.escapeHtml(task.title)}</div>
               ${notes ? `<div class="text-xs text-gray-500 mt-0.5">${notes}</div>` : ''}
               <div class="text-xs text-gray-400 mt-1">${assignee ? Helpers.escapeHtml(assignee.name) : '미배정'}</div>
             </div>
           </div>
-          <div class="flex flex-col gap-1 items-end shrink-0">
+          <div class="flex flex-col gap-1.5 items-end shrink-0">
             ${Helpers.renderDDayBadge(dDay)}
-            <div class="flex gap-1 items-center mt-1">
-              <button class="btn-start-task text-xs text-blue-600 hover:text-blue-700 font-semibold px-2 py-1 hover:bg-blue-50 rounded transition" data-task-id="${task.id}">시작</button>
-              ${this._editIcon(task.id)}
-              ${this._trashIcon(task.id)}
-            </div>
+            ${this._statusToggle(task)}
+            <div class="flex gap-1">${this._editIcon(task.id)}${this._trashIcon(task.id)}</div>
           </div>
         </div>
       </div>
@@ -494,19 +494,11 @@ class ThreadDetailView {
       btnAddTask.addEventListener('click', () => this.showAddTaskModal());
     }
 
-    // Task 완료
-    document.querySelectorAll('.btn-complete-task').forEach(btn => {
+    // Task 상태 토글 (대기/진행중/완료)
+    document.querySelectorAll('.btn-status-task').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        this.completeTask(btn.dataset.taskId);
-      });
-    });
-
-    // Task 시작 (대기 → 진행중)
-    document.querySelectorAll('.btn-start-task').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.startTask(btn.dataset.taskId);
+        this.changeTaskStatus(btn.dataset.taskId, btn.dataset.status);
       });
     });
 
@@ -865,25 +857,20 @@ class ThreadDetailView {
     };
   }
 
-  async startTask(taskId) {
+  async changeTaskStatus(taskId, newStatus) {
+    const task = this.tasks.find(t => t.id === taskId);
+    if (!task || task.status === newStatus) return;
     try {
-      await this.apiClient.updateTask(taskId, { status: 'in_progress' });
+      const updates = { status: newStatus };
+      if (newStatus === 'completed') {
+        updates.completed_at = new Date().toISOString();
+      } else {
+        updates.completed_at = null;
+      }
+      await this.apiClient.updateTask(taskId, updates);
       await this.render(this.container, this.currentThread, this.currentProject);
     } catch (error) {
-      alert('Task 시작 실패: ' + error.message);
-    }
-  }
-
-  async completeTask(taskId) {
-    if (!confirm('Task를 완료 처리하시겠습니까?')) return;
-    try {
-      await this.apiClient.updateTask(taskId, {
-        status: 'completed',
-        completed_at: new Date().toISOString()
-      });
-      await this.render(this.container, this.currentThread, this.currentProject);
-    } catch (error) {
-      alert('Task 완료 실패: ' + error.message);
+      alert('상태 변경 실패: ' + error.message);
     }
   }
 
