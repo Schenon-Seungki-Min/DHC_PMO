@@ -44,18 +44,18 @@ class ThreadBar {
     const s = statusStyles[status] || statusStyles.active;
 
     return `
-      <div class="grid grid-cols-5 gap-2 items-center cursor-pointer thread-bar-container ${s.containerClass}"
+      <div class="grid grid-cols-5 gap-1 items-center cursor-pointer thread-bar-container ${s.containerClass}"
            data-thread-id="${this.thread.id}">
-        <div class="pr-2">
-          <div class="text-sm font-semibold ${s.titleClass} truncate">
+        <div class="pr-1">
+          <div class="text-xs font-semibold ${s.titleClass} truncate leading-tight">
             ${Helpers.escapeHtml(this.thread.title)}${s.badge}
           </div>
-          <div class="text-xs text-gray-500 mt-0.5">${Helpers.escapeHtml(assigneeNames)}</div>
+          <div class="text-[10px] text-gray-500 leading-tight">${Helpers.escapeHtml(assigneeNames)}</div>
         </div>
-        <div class="col-span-4 relative h-14">
-          <div class="thread-bar absolute" style="left: ${left}; width: ${width}; top: 6px; ${s.barStyle}">
+        <div class="col-span-4 relative h-9">
+          <div class="thread-bar absolute" style="left: ${left}; width: ${width}; top: 2px; ${s.barStyle}">
             ${memberStripes}
-            <div class="absolute right-2 top-1/2 -translate-y-1/2 z-10">
+            <div class="absolute right-1 top-1/2 -translate-y-1/2 z-10">
               ${Helpers.renderDDayBadge(dDay)}
             </div>
           </div>
