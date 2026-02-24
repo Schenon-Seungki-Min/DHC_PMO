@@ -125,12 +125,12 @@ class TimelineView {
         <div class="lg:col-span-3 card-modern p-4 md:p-6 overflow-x-auto">
           <div class="min-w-[600px]">
             <!-- Week Headers -->
-            <div class="grid grid-cols-5 gap-2 mb-3">
-              <div class="text-sm font-semibold text-gray-700">Thread</div>
+            <div class="grid grid-cols-5 gap-1 mb-2">
+              <div class="text-xs font-semibold text-gray-700">Thread</div>
               ${weeks.map(week => `
                 <div class="text-center">
-                  <div class="text-sm font-bold text-gray-900">${week.label}</div>
-                  <div class="text-xs text-gray-500">${week.dateRange}</div>
+                  <div class="text-xs font-bold text-gray-900">${week.label}</div>
+                  <div class="text-[10px] text-gray-500">${week.dateRange}</div>
                 </div>
               `).join('')}
             </div>
@@ -147,13 +147,13 @@ class TimelineView {
               ` : ''}
 
               <!-- Thread Bars (grouped by project) -->
-              <div class="space-y-2 pt-4" id="thread-bars">
+              <div class="space-y-1 pt-2" id="thread-bars">
                 ${this.renderGroupedThreadBars(timelineStart, timelineEnd)}
               </div>
             </div>
 
             <!-- Legend -->
-            <div class="flex flex-wrap gap-4 md:gap-6 mt-6 pt-4 border-t border-gray-200 text-xs font-medium">
+            <div class="flex flex-wrap gap-3 md:gap-4 mt-4 pt-3 border-t border-gray-200 text-[10px] font-medium">
               <span class="font-bold text-gray-900">담당자:</span>
               ${this.members.map(member => `
                 <span class="flex items-center gap-1.5">
@@ -211,10 +211,6 @@ class TimelineView {
       ? this.threads
       : this.threads.filter(t => t.status === this.statusFilter);
 
-    if (filtered.length === 0) {
-      return '<div class="text-center py-8 text-gray-500">해당 상태의 Thread가 없습니다.</div>';
-    }
-
     // 프로젝트별 그룹핑
     const grouped = {};
     filtered.forEach(thread => {
@@ -223,37 +219,48 @@ class TimelineView {
       grouped[pid].push(thread);
     });
 
+    // 모든 프로젝트를 포함 (빈 프로젝트도 표시)
+    this.projects.forEach(p => {
+      if (!grouped[p.id]) grouped[p.id] = [];
+    });
+
     // 프로젝트 순서대로 렌더링
     const projectOrder = this.projects.map(p => p.id);
     const sortedPids = Object.keys(grouped).sort((a, b) =>
       projectOrder.indexOf(a) - projectOrder.indexOf(b)
     );
 
+    if (sortedPids.length === 0) {
+      return '<div class="text-center py-6 text-gray-500 text-sm">프로젝트가 없습니다. "+ 프로젝트" 버튼으로 추가하세요.</div>';
+    }
+
     return sortedPids.map(pid => {
       const project = this.projects.find(p => p.id === pid);
       const projectName = project ? project.name : '알 수 없는 프로젝트';
       const threads = grouped[pid];
 
-      const threadBars = threads.map(thread => {
-        const threadAssignments = this.assignments[thread.id] || [];
-        const bar = new ThreadBar(thread, threadAssignments, this.members, timelineStart, timelineEnd);
-        return bar.render();
-      }).join('');
+      const threadBars = threads.length > 0
+        ? threads.map(thread => {
+            const threadAssignments = this.assignments[thread.id] || [];
+            const bar = new ThreadBar(thread, threadAssignments, this.members, timelineStart, timelineEnd);
+            return bar.render();
+          }).join('')
+        : `<div class="text-xs text-gray-400 italic py-1.5 px-2">Thread 없음</div>`;
 
       return `
-        <div class="mb-4">
-          <div class="flex items-center gap-2 mb-2 px-1 group/proj">
-            <div class="w-1.5 h-5 rounded-full bg-blue-500"></div>
-            <span class="text-sm font-bold text-gray-700">${Helpers.escapeHtml(projectName)}</span>
-            <span class="text-xs text-gray-400 font-medium">${threads.length}개</span>
+        <div class="mb-2">
+          <div class="flex items-center gap-1.5 mb-1 px-1 group/proj">
+            <div class="w-1 h-4 rounded-full bg-blue-500"></div>
+            <span class="text-xs font-bold text-gray-700">${Helpers.escapeHtml(projectName)}</span>
+            <span class="text-[10px] text-gray-400 font-medium">${threads.length}개</span>
             <button class="btn-edit-project text-gray-400 hover:text-blue-600 opacity-0 group-hover/proj:opacity-100 transition-opacity" data-project-id="${pid}" title="프로젝트 수정">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
             </button>
             <button class="btn-delete-project text-gray-400 hover:text-red-600 opacity-0 group-hover/proj:opacity-100 transition-opacity" data-project-id="${pid}" title="프로젝트 삭제">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
             </button>
           </div>
-          <div class="space-y-3">
+          <div class="space-y-1">
             ${threadBars}
           </div>
         </div>
