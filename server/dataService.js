@@ -274,6 +274,27 @@ class DataService {
     return data;
   }
 
+  async updateAssignment(id, updates) {
+    const { data, error } = await supabase
+      .from('thread_assignments')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error && error.code === 'PGRST116') return null;
+    if (error) throw new Error(error.message);
+    return data;
+  }
+
+  async deleteAssignment(id) {
+    const { error } = await supabase
+      .from('thread_assignments')
+      .delete()
+      .eq('id', id);
+    if (error) throw new Error(error.message);
+    return true;
+  }
+
   async getCurrentAssignments(threadId) {
     const { data, error } = await supabase
       .from('thread_assignments')

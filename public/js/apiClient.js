@@ -123,6 +123,21 @@ class APIClient {
     return this.request(`/api/threads/${threadId}/current-assignments`);
   }
 
+  // ========== ASSIGNMENTS ==========
+
+  async updateAssignment(id, data) {
+    return this.request(`/api/assignments/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async deleteAssignment(id) {
+    return this.request(`/api/assignments/${id}`, {
+      method: 'DELETE'
+    });
+  }
+
   // ========== TASKS ==========
 
   async getAllTasks(filters = {}) {

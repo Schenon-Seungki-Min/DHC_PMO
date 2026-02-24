@@ -48,6 +48,7 @@ class ThreadDetailView {
     this.tasks = allTasks.filter(t => t.thread_id === this.currentThread.id);
 
     this.members = await this.apiClient.getAllMembers();
+    Helpers.autoAssignColors(this.members);
 
     this.history = await this.apiClient.getThreadHistory(this.currentThread.id);
   }
@@ -110,6 +111,9 @@ class ThreadDetailView {
               <div class="space-y-3" id="assignment-list">
                 ${this.renderAssignments()}
               </div>
+
+              <!-- 담당 히스토리 (컴팩트, 접기/펼치기) -->
+              ${this.renderCompactHistory()}
             </div>
 
             <!-- Stakeholders (텍스트 입력) -->
@@ -125,14 +129,6 @@ class ThreadDetailView {
                 <div class="flex justify-end">
                   <button id="btn-save-stakeholder" class="text-xs text-blue-600 hover:text-blue-700 font-semibold px-3 py-1.5 border border-blue-300 hover:border-blue-400 rounded-lg transition">저장</button>
                 </div>
-              </div>
-            </div>
-
-            <!-- 담당 히스토리 -->
-            <div>
-              <h3 class="font-bold text-gray-900 mb-4 flex items-center gap-2 text-lg">담당 히스토리</h3>
-              <div class="relative" id="history-timeline">
-                ${this.renderHistory()}
               </div>
             </div>
           </div>
@@ -153,7 +149,7 @@ class ThreadDetailView {
   }
 
   /**
-   * 현재 담당자 렌더링
+   * 현재 담당자 렌더링 (편집 버튼 포함)
    */
   renderAssignments() {
     if (this.assignments.length === 0) {
@@ -172,6 +168,7 @@ class ThreadDetailView {
 
       const isLead = assignment.role === 'lead';
       const borderClass = isLead ? 'border-blue-200 bg-gradient-to-r from-blue-50 to-transparent' : 'border-gray-200 bg-gradient-to-r from-gray-50 to-transparent';
+      const noteText = assignment.note ? ` · ${assignment.note}` : '';
 
       return `
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-xl border-2 ${borderClass}">
@@ -181,11 +178,15 @@ class ThreadDetailView {
             </div>
             <div>
               <span class="font-bold text-gray-900 block">${Helpers.escapeHtml(member.name)}</span>
-              <span class="badge ${isLead ? 'bg-blue-100 text-blue-800' : 'bg-gray-200 text-gray-700'} mt-1 inline-block">${assignment.role}</span>
+              <div class="flex items-center gap-1.5 mt-0.5">
+                <span class="badge ${isLead ? 'bg-blue-100 text-blue-800' : 'bg-gray-200 text-gray-700'}">${assignment.role}</span>
+                ${noteText ? `<span class="text-xs text-gray-400">${Helpers.escapeHtml(noteText)}</span>` : ''}
+              </div>
             </div>
           </div>
           <div class="flex items-center gap-2">
-            <span class="text-sm text-gray-600 font-semibold">${Helpers.formatDate(assignment.grabbed_at)}~</span>
+            <span class="text-sm text-gray-500 font-medium">${Helpers.formatDate(assignment.grabbed_at)}~</span>
+            <button class="btn-edit-assignment text-xs text-blue-600 hover:text-blue-700 font-semibold" data-assignment-id="${assignment.id}">수정</button>
             <button class="btn-release text-xs text-red-600 hover:text-red-700 font-semibold" data-assignment-id="${assignment.id}">제거</button>
           </div>
         </div>
@@ -194,59 +195,56 @@ class ThreadDetailView {
   }
 
   /**
-   * 히스토리 타임라인 렌더링
+   * 컴팩트 히스토리 (현재 담당 아래, 접기/펼치기)
    */
-  renderHistory() {
-    if (this.history.length === 0) {
-      return '<div class="text-sm text-gray-500 text-center py-4">히스토리가 없습니다.</div>';
+  renderCompactHistory() {
+    // 현재 assignment가 아닌 것만 (released_at이 있는 것)
+    const pastHistory = this.history.filter(h => h.released_at !== null);
+
+    if (pastHistory.length === 0) {
+      return '';
     }
 
     const events = [];
-    this.history.forEach(item => {
+    pastHistory.forEach(item => {
       events.push({ ...item, eventType: 'grab', timestamp: item.grabbed_at });
       if (item.released_at) {
         events.push({ ...item, eventType: 'release', timestamp: item.released_at });
       }
     });
-
     events.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
-    return `
-      <div class="absolute left-5 top-8 bottom-8 w-1 bg-gradient-to-b from-gray-200 via-gray-300 to-gray-200 rounded-full"></div>
-      <div class="space-y-4">
-        ${events.map((item, index) => this.renderHistoryItem(item, index)).join('')}
-      </div>
-    `;
-  }
+    const historyItems = events.map(item => {
+      const member = this.members.find(m => m.id === item.member_id);
+      const memberName = member ? member.name : '알 수 없음';
+      const dotStyle = member ? Helpers.getMemberDotStyle(member.color) : 'background: #9CA3AF;';
+      const isGrab = item.eventType === 'grab';
+      const action = isGrab ? 'grab' : 'release';
+      const roleLabel = isGrab ? ` (${item.role})` : '';
+      const noteLabel = item.note ? ` · ${item.note}` : '';
 
-  /**
-   * 히스토리 아이템 렌더링
-   */
-  renderHistoryItem(item, index) {
-    const member = this.members.find(m => m.id === item.member_id);
-    const memberName = member ? member.name : '알 수 없음';
-    const dotStyle = member ? Helpers.getMemberDotStyle(member.color) : 'background: #9CA3AF;';
-
-    const isGrab = item.eventType === 'grab';
-    const title = isGrab ? `${memberName} grab (${item.role})` : `${memberName} release`;
-    const description = item.note || (isGrab ? 'Thread 담당 시작' : 'Thread 담당 종료');
-
-    let borderClass = 'border-gray-200';
-    let bgClass = 'bg-gradient-to-r from-gray-50 to-transparent';
-    if (isGrab && index === 0) {
-      borderClass = 'border-blue-200';
-      bgClass = 'bg-gradient-to-r from-blue-50 to-transparent';
-    }
+      return `
+        <div class="flex items-center gap-2 py-1.5 text-xs group">
+          <span class="w-2 h-2 rounded-full shrink-0" style="${dotStyle}"></span>
+          <span class="text-gray-600">${Helpers.escapeHtml(memberName)} <span class="font-semibold">${action}</span>${Helpers.escapeHtml(roleLabel)}${Helpers.escapeHtml(noteLabel)}</span>
+          <span class="text-gray-400 ml-auto shrink-0">${Helpers.formatDate(item.timestamp)}</span>
+          <button class="btn-edit-history text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" data-assignment-id="${item.id}" title="수정">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+          </button>
+          <button class="btn-delete-history text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" data-assignment-id="${item.id}" title="삭제">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+          </button>
+        </div>
+      `;
+    }).join('');
 
     return `
-      <div class="flex items-start gap-4">
-        <div class="timeline-dot z-10 mt-2 shadow-md" style="${dotStyle}"></div>
-        <div class="flex-1 p-4 rounded-xl border-2 ${borderClass} ${bgClass}">
-          <div class="flex flex-col sm:flex-row justify-between gap-2">
-            <span class="font-bold text-gray-900">${Helpers.escapeHtml(title)}</span>
-            <span class="text-sm text-gray-600 font-semibold">${Helpers.formatDate(item.timestamp)}</span>
-          </div>
-          <div class="text-sm text-gray-600 mt-1">${Helpers.escapeHtml(description)}</div>
+      <div class="mt-4">
+        <button id="btn-toggle-history" class="text-xs text-gray-500 hover:text-gray-700 font-semibold flex items-center gap-1">
+          <span id="history-arrow">\u25B8</span> 담당 히스토리 (${pastHistory.length})
+        </button>
+        <div id="history-panel" class="hidden mt-2 pl-1 border-l-2 border-gray-100 ml-1">
+          ${historyItems}
         </div>
       </div>
     `;
@@ -305,9 +303,12 @@ class ThreadDetailView {
       <div class="p-4 border-2 rounded-xl bg-gray-50 opacity-75">
         <div class="flex items-start justify-between gap-3">
           <div class="flex items-start gap-3 flex-1">
-            <span class="text-green-600 text-xl mt-0.5">✓</span>
+            <span class="text-green-600 text-xl mt-0.5">\u2713</span>
             <div class="flex-1">
-              <div class="line-through text-gray-500 font-medium">${Helpers.escapeHtml(task.title)}</div>
+              <div class="flex items-center gap-2">
+                <span class="line-through text-gray-500 font-medium">${Helpers.escapeHtml(task.title)}</span>
+                <span class="badge bg-green-100 text-green-700">완료</span>
+              </div>
               ${notes ? `<div class="text-xs text-gray-400 mt-0.5">${notes}</div>` : ''}
               ${assignee ? `
                 <div class="flex items-center gap-2 text-xs text-gray-400 mt-1">
@@ -334,7 +335,10 @@ class ThreadDetailView {
           <div class="flex items-start gap-3 flex-1">
             <span class="text-blue-600 text-xl font-bold mt-0.5">\u2192</span>
             <div class="flex-1">
-              <div class="font-bold text-gray-900">${Helpers.escapeHtml(task.title)}</div>
+              <div class="flex items-center gap-2">
+                <span class="font-bold text-gray-900">${Helpers.escapeHtml(task.title)}</span>
+                <span class="badge bg-blue-100 text-blue-700">진행중</span>
+              </div>
               ${notes ? `<div class="text-xs text-gray-500 mt-0.5">${notes}</div>` : ''}
               ${assignee ? `
                 <div class="flex items-center gap-2 text-xs text-gray-600 mt-1">
@@ -368,7 +372,10 @@ class ThreadDetailView {
           <div class="flex items-start gap-3 flex-1">
             <span class="text-gray-400 text-xl mt-0.5">\u25CB</span>
             <div class="flex-1">
-              <div class="font-semibold text-gray-900">${Helpers.escapeHtml(task.title)}</div>
+              <div class="flex items-center gap-2">
+                <span class="font-semibold text-gray-900">${Helpers.escapeHtml(task.title)}</span>
+                <span class="badge bg-gray-100 text-gray-600">대기</span>
+              </div>
               ${notes ? `<div class="text-xs text-gray-500 mt-0.5">${notes}</div>` : ''}
               <div class="text-xs text-gray-400 mt-1">${assignee ? Helpers.escapeHtml(assignee.name) : '미배정'}</div>
             </div>
@@ -376,6 +383,7 @@ class ThreadDetailView {
           <div class="flex flex-col gap-1 items-end shrink-0">
             ${Helpers.renderDDayBadge(dDay)}
             <div class="flex gap-1 items-center mt-1">
+              <button class="btn-start-task text-xs text-blue-600 hover:text-blue-700 font-semibold px-2 py-1 hover:bg-blue-50 rounded transition" data-task-id="${task.id}">시작</button>
               ${this._editIcon(task.id)}
               ${this._trashIcon(task.id)}
             </div>
@@ -430,10 +438,47 @@ class ThreadDetailView {
       btnAddAssignment.addEventListener('click', () => this.showAddAssignmentModal());
     }
 
+    // 담당자 편집
+    document.querySelectorAll('.btn-edit-assignment').forEach(btn => {
+      btn.addEventListener('click', () => {
+        this.showEditAssignmentModal(btn.dataset.assignmentId);
+      });
+    });
+
     // 담당자 제거
     document.querySelectorAll('.btn-release').forEach(btn => {
       btn.addEventListener('click', () => {
         this.releaseAssignment(btn.dataset.assignmentId);
+      });
+    });
+
+    // 히스토리 토글
+    const btnToggleHistory = document.getElementById('btn-toggle-history');
+    if (btnToggleHistory) {
+      btnToggleHistory.addEventListener('click', () => {
+        const panel = document.getElementById('history-panel');
+        const arrow = document.getElementById('history-arrow');
+        if (panel.classList.contains('hidden')) {
+          panel.classList.remove('hidden');
+          arrow.textContent = '\u25BE';
+        } else {
+          panel.classList.add('hidden');
+          arrow.textContent = '\u25B8';
+        }
+      });
+    }
+
+    // 히스토리 편집
+    document.querySelectorAll('.btn-edit-history').forEach(btn => {
+      btn.addEventListener('click', () => {
+        this.showEditHistoryModal(btn.dataset.assignmentId);
+      });
+    });
+
+    // 히스토리 삭제
+    document.querySelectorAll('.btn-delete-history').forEach(btn => {
+      btn.addEventListener('click', () => {
+        this.deleteHistoryItem(btn.dataset.assignmentId);
       });
     });
 
@@ -454,6 +499,14 @@ class ThreadDetailView {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         this.completeTask(btn.dataset.taskId);
+      });
+    });
+
+    // Task 시작 (대기 → 진행중)
+    document.querySelectorAll('.btn-start-task').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.startTask(btn.dataset.taskId);
       });
     });
 
@@ -487,7 +540,6 @@ class ThreadDetailView {
         stakeholder_text: text
       });
       this.currentThread = { ...this.currentThread, ...updated };
-      // 저장 성공 피드백
       const btn = document.getElementById('btn-save-stakeholder');
       if (btn) {
         btn.textContent = '저장됨';
@@ -555,6 +607,112 @@ class ThreadDetailView {
         alert('담당자 추가 실패: ' + error.message);
       }
     };
+  }
+
+  /**
+   * 담당자 편집 모달 (역할, 메모 수정)
+   */
+  showEditAssignmentModal(assignmentId) {
+    const assignment = this.assignments.find(a => a.id === assignmentId);
+    if (!assignment) return;
+
+    const member = this.members.find(m => m.id === assignment.member_id);
+    const memberName = member ? member.name : '알 수 없음';
+
+    Helpers.showModal(`
+      <h3 class="text-lg font-bold text-gray-900 mb-5">담당 수정 · ${Helpers.escapeHtml(memberName)}</h3>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">역할</label>
+          <div class="flex gap-3">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="m-edit-role" value="lead" ${assignment.role === 'lead' ? 'checked' : ''} class="accent-blue-600"> <span class="text-sm font-medium">Lead</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="m-edit-role" value="support" ${assignment.role === 'support' ? 'checked' : ''} class="accent-blue-600"> <span class="text-sm font-medium">Support</span>
+            </label>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">메모</label>
+          <input type="text" id="m-edit-note" value="${Helpers.escapeHtml(assignment.note || '')}" placeholder="메모 입력" class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-400 focus:outline-none">
+        </div>
+      </div>
+      <div class="flex gap-3 mt-6">
+        <button id="m-cancel" class="flex-1 py-2.5 rounded-xl border-2 border-gray-200 text-gray-700 font-semibold text-sm hover:bg-gray-50 transition">취소</button>
+        <button id="m-submit" class="flex-1 py-2.5 rounded-xl btn-primary text-white font-semibold text-sm">저장</button>
+      </div>
+    `);
+    document.getElementById('m-cancel').onclick = () => Helpers.closeModal();
+    document.getElementById('m-submit').onclick = async () => {
+      const role = document.querySelector('input[name="m-edit-role"]:checked')?.value || assignment.role;
+      const note = document.getElementById('m-edit-note').value.trim();
+      Helpers.closeModal();
+      try {
+        await this.apiClient.updateAssignment(assignmentId, { role, note });
+        await this.render(this.container, this.currentThread, this.currentProject);
+      } catch (error) {
+        alert('담당 수정 실패: ' + error.message);
+      }
+    };
+  }
+
+  /**
+   * 히스토리 수정 모달
+   */
+  showEditHistoryModal(assignmentId) {
+    const item = this.history.find(h => h.id === assignmentId);
+    if (!item) return;
+
+    const member = this.members.find(m => m.id === item.member_id);
+    const memberName = member ? member.name : '알 수 없음';
+
+    Helpers.showModal(`
+      <h3 class="text-lg font-bold text-gray-900 mb-5">히스토리 수정 · ${Helpers.escapeHtml(memberName)}</h3>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">역할</label>
+          <div class="flex gap-3">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="m-hist-role" value="lead" ${item.role === 'lead' ? 'checked' : ''} class="accent-blue-600"> <span class="text-sm font-medium">Lead</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="m-hist-role" value="support" ${item.role === 'support' ? 'checked' : ''} class="accent-blue-600"> <span class="text-sm font-medium">Support</span>
+            </label>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">메모</label>
+          <input type="text" id="m-hist-note" value="${Helpers.escapeHtml(item.note || '')}" placeholder="메모 입력" class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-400 focus:outline-none">
+        </div>
+      </div>
+      <div class="flex gap-3 mt-6">
+        <button id="m-cancel" class="flex-1 py-2.5 rounded-xl border-2 border-gray-200 text-gray-700 font-semibold text-sm hover:bg-gray-50 transition">취소</button>
+        <button id="m-submit" class="flex-1 py-2.5 rounded-xl btn-primary text-white font-semibold text-sm">저장</button>
+      </div>
+    `);
+    document.getElementById('m-cancel').onclick = () => Helpers.closeModal();
+    document.getElementById('m-submit').onclick = async () => {
+      const role = document.querySelector('input[name="m-hist-role"]:checked')?.value || item.role;
+      const note = document.getElementById('m-hist-note').value.trim();
+      Helpers.closeModal();
+      try {
+        await this.apiClient.updateAssignment(assignmentId, { role, note });
+        await this.render(this.container, this.currentThread, this.currentProject);
+      } catch (error) {
+        alert('히스토리 수정 실패: ' + error.message);
+      }
+    };
+  }
+
+  async deleteHistoryItem(assignmentId) {
+    if (!confirm('이 히스토리 기록을 삭제하시겠습니까?')) return;
+    try {
+      await this.apiClient.deleteAssignment(assignmentId);
+      await this.render(this.container, this.currentThread, this.currentProject);
+    } catch (error) {
+      alert('히스토리 삭제 실패: ' + error.message);
+    }
   }
 
   async releaseAssignment(assignmentId) {
@@ -647,12 +805,6 @@ class ThreadDetailView {
         `<option value="${m.id}" ${m.id === task.assignee_id ? 'selected' : ''}>${Helpers.escapeHtml(m.name)}</option>`
       ).join('');
 
-    const statusOptions = [
-      { value: 'pending',     label: '대기' },
-      { value: 'in_progress', label: '진행중' },
-      { value: 'completed',   label: '완료' }
-    ].map(s => `<option value="${s.value}" ${s.value === task.status ? 'selected' : ''}>${s.label}</option>`).join('');
-
     const dueVal = task.due_date ? task.due_date.split('T')[0] : '';
     const notes = task.notes || '';
 
@@ -673,12 +825,6 @@ class ThreadDetailView {
           <label class="block text-sm font-semibold text-gray-700 mb-1">담당자</label>
           <select id="m-edit-assignee" class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-400 focus:outline-none">
             ${memberOptions}
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1">상태</label>
-          <select id="m-edit-status" class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-400 focus:outline-none">
-            ${statusOptions}
           </select>
         </div>
         <div>
@@ -703,15 +849,11 @@ class ThreadDetailView {
       const title = document.getElementById('m-edit-title').value.trim();
       const dueDate = document.getElementById('m-edit-due').value;
       const assigneeId = document.getElementById('m-edit-assignee').value;
-      const status = document.getElementById('m-edit-status').value;
       const notes = document.getElementById('m-edit-notes').value.trim();
 
       if (!title) { alert('제목을 입력해주세요.'); return; }
 
-      const updates = { title, due_date: dueDate, assignee_id: assigneeId || null, status, notes };
-      if (status === 'completed' && task.status !== 'completed') {
-        updates.completed_at = new Date().toISOString();
-      }
+      const updates = { title, due_date: dueDate, assignee_id: assigneeId || null, notes };
 
       Helpers.closeModal();
       try {
@@ -721,6 +863,15 @@ class ThreadDetailView {
         alert('Task 수정 실패: ' + error.message);
       }
     };
+  }
+
+  async startTask(taskId) {
+    try {
+      await this.apiClient.updateTask(taskId, { status: 'in_progress' });
+      await this.render(this.container, this.currentThread, this.currentProject);
+    } catch (error) {
+      alert('Task 시작 실패: ' + error.message);
+    }
   }
 
   async completeTask(taskId) {
