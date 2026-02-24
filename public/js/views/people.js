@@ -39,7 +39,7 @@ class PeopleView {
    */
   async loadData() {
     this.members = await this.apiClient.getAllMembers();
-    Helpers.autoAssignColors(this.members);
+    await Helpers.autoAssignColors(this.members, this.apiClient);
     this.threads = await this.apiClient.getAllThreads();
     this.tasks = await this.apiClient.getAllTasks();
     this.projects = await this.apiClient.getAllProjects();
@@ -391,7 +391,7 @@ class PeopleView {
 
   showEditMemberModal(member) {
     const colorOptions = [
-      { value: '#374151', label: '회색 (Gray)' },
+      { value: '#6B7280', label: '회색 (Gray)' },
       { value: '#3B82F6', label: '파랑 (Blue)' },
       { value: '#8B5CF6', label: '보라 (Purple)' },
       { value: '#10B981', label: '초록 (Green)' },
@@ -449,7 +449,7 @@ class PeopleView {
 
   showAddMemberModal() {
     const colorOptions = [
-      { value: '#374151', label: '회색 (Gray)' },
+      { value: '#6B7280', label: '회색 (Gray)' },
       { value: '#3B82F6', label: '파랑 (Blue)' },
       { value: '#8B5CF6', label: '보라 (Purple)' },
       { value: '#10B981', label: '초록 (Green)' },

@@ -127,19 +127,27 @@ const Helpers = {
   // ========== 멤버 색상 ==========
 
   /**
-   * DB 기본값(#374151)인 멤버에게 팔레트 기반 고유 색상 자동 배정
+   * DB 기본값(#374151)인 멤버에게 팔레트 기반 고유 색상 자동 배정 + DB 저장
    * 이미 개인 색상이 설정된 멤버는 건드리지 않음
+   * 최초 1회만 DB에 저장하고, 이후 로드에서는 저장된 색상 사용
    */
-  autoAssignColors(members) {
+  async autoAssignColors(members, apiClient) {
     const DEFAULT = '#374151';
     const PALETTE = ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#EC4899', '#06B6D4', '#F97316'];
     let idx = 0;
+    const savePromises = [];
     members.forEach(m => {
       if (!m.color || m.color === DEFAULT) {
         m.color = PALETTE[idx % PALETTE.length];
         idx++;
+        if (apiClient) {
+          savePromises.push(apiClient.updateMember(m.id, { color: m.color }));
+        }
       }
     });
+    if (savePromises.length > 0) {
+      try { await Promise.all(savePromises); } catch (e) { console.warn('색상 저장 실패:', e); }
+    }
     return members;
   },
 
