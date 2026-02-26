@@ -234,18 +234,11 @@ class TimelineView {
       return '<div class="text-center py-6 text-gray-500 text-sm">프로젝트가 없습니다. "+ 프로젝트" 버튼으로 추가하세요.</div>';
     }
 
-    // 프로젝트 색상 팔레트
-    const PROJECT_COLORS = [
-      '#3B82F6', '#8B5CF6', '#10B981', '#F59E0B',
-      '#EF4444', '#EC4899', '#06B6D4', '#F97316',
-      '#6366F1', '#14B8A6', '#84CC16', '#D946EF'
-    ];
-
     return sortedPids.map((pid, pidIdx) => {
       const project = this.projects.find(p => p.id === pid);
       const projectName = project ? project.name : '알 수 없는 프로젝트';
       const threads = grouped[pid];
-      const pColor = PROJECT_COLORS[pidIdx % PROJECT_COLORS.length];
+      const pColor = (project && project.color) || TimelineView.PROJECT_COLORS[pidIdx % TimelineView.PROJECT_COLORS.length];
 
       const threadBars = threads.length > 0
         ? threads.map(thread => {
@@ -598,6 +591,46 @@ class TimelineView {
 
   // ========== 프로젝트 관리 ==========
 
+  /**
+   * 프로젝트 색상 팔레트
+   */
+  static PROJECT_COLORS = [
+    '#3B82F6', '#8B5CF6', '#10B981', '#F59E0B',
+    '#EF4444', '#EC4899', '#06B6D4', '#F97316',
+    '#6366F1', '#14B8A6', '#84CC16', '#D946EF'
+  ];
+
+  _renderColorPicker(selectedColor) {
+    const colors = TimelineView.PROJECT_COLORS;
+    const selected = selectedColor || colors[0];
+    return `
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1.5">색상</label>
+        <div class="flex flex-wrap gap-2" id="m-proj-color-picker">
+          ${colors.map(c => `
+            <button type="button" class="proj-color-opt w-7 h-7 rounded-full border-2 transition-all hover:scale-110 ${c === selected ? 'border-gray-800 ring-2 ring-offset-1 ring-gray-400 scale-110' : 'border-transparent'}"
+              style="background: ${c};" data-color="${c}"></button>
+          `).join('')}
+        </div>
+        <input type="hidden" id="m-proj-color" value="${selected}">
+      </div>
+    `;
+  }
+
+  _attachColorPickerListeners() {
+    document.querySelectorAll('.proj-color-opt').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.proj-color-opt').forEach(b => {
+          b.classList.remove('border-gray-800', 'ring-2', 'ring-offset-1', 'ring-gray-400', 'scale-110');
+          b.classList.add('border-transparent');
+        });
+        btn.classList.add('border-gray-800', 'ring-2', 'ring-offset-1', 'ring-gray-400', 'scale-110');
+        btn.classList.remove('border-transparent');
+        document.getElementById('m-proj-color').value = btn.dataset.color;
+      });
+    });
+  }
+
   showNewProjectModal() {
     Helpers.showModal(`
       <h3 class="text-lg font-bold text-gray-900 mb-5">프로젝트 추가</h3>
@@ -612,20 +645,23 @@ class TimelineView {
           <input type="text" id="m-proj-objective" placeholder="프로젝트 목표 (선택)" maxlength="100"
             class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-400 focus:outline-none">
         </div>
+        ${this._renderColorPicker(null)}
       </div>
       <div class="flex gap-3 mt-6">
         <button id="m-cancel" class="flex-1 py-2.5 rounded-xl border-2 border-gray-200 text-gray-700 font-semibold text-sm hover:bg-gray-50 transition">취소</button>
         <button id="m-submit" class="flex-1 py-2.5 rounded-xl btn-primary text-white font-semibold text-sm">추가</button>
       </div>
     `);
+    this._attachColorPickerListeners();
     document.getElementById('m-cancel').onclick = () => Helpers.closeModal();
     document.getElementById('m-submit').onclick = async () => {
       const name = document.getElementById('m-proj-name').value.trim();
       const objective = document.getElementById('m-proj-objective').value.trim();
+      const color = document.getElementById('m-proj-color').value;
       if (!name) { alert('이름을 입력해주세요.'); return; }
       Helpers.closeModal();
       try {
-        await this.apiClient.createProject({ id: `proj-${Date.now()}`, name, objective: objective || null, status: 'active' });
+        await this.apiClient.createProject({ id: `proj-${Date.now()}`, name, objective: objective || null, color, status: 'active' });
         await this.render(this.container, this.currentProject);
       } catch (error) {
         alert('프로젝트 추가 실패: ' + error.message);
@@ -654,6 +690,7 @@ class TimelineView {
           <input type="text" id="m-proj-objective" value="${Helpers.escapeHtml(project.objective || '')}" maxlength="100"
             class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-400 focus:outline-none">
         </div>
+        ${this._renderColorPicker(project.color)}
         <div>
           <label class="block text-sm font-semibold text-gray-700 mb-1">상태</label>
           <select id="m-proj-status" class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-400 focus:outline-none">
@@ -666,15 +703,17 @@ class TimelineView {
         <button id="m-submit" class="flex-1 py-2.5 rounded-xl btn-primary text-white font-semibold text-sm">저장</button>
       </div>
     `);
+    this._attachColorPickerListeners();
     document.getElementById('m-cancel').onclick = () => Helpers.closeModal();
     document.getElementById('m-submit').onclick = async () => {
       const name = document.getElementById('m-proj-name').value.trim();
       const objective = document.getElementById('m-proj-objective').value.trim();
       const status = document.getElementById('m-proj-status').value;
+      const color = document.getElementById('m-proj-color').value;
       if (!name) { alert('이름을 입력해주세요.'); return; }
       Helpers.closeModal();
       try {
-        await this.apiClient.updateProject(projectId, { name, objective: objective || null, status });
+        await this.apiClient.updateProject(projectId, { name, objective: objective || null, status, color });
         await this.render(this.container, this.currentProject);
       } catch (error) {
         alert('프로젝트 수정 실패: ' + error.message);
