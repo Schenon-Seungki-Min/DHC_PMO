@@ -234,10 +234,18 @@ class TimelineView {
       return '<div class="text-center py-6 text-gray-500 text-sm">프로젝트가 없습니다. "+ 프로젝트" 버튼으로 추가하세요.</div>';
     }
 
-    return sortedPids.map(pid => {
+    // 프로젝트 색상 팔레트
+    const PROJECT_COLORS = [
+      '#3B82F6', '#8B5CF6', '#10B981', '#F59E0B',
+      '#EF4444', '#EC4899', '#06B6D4', '#F97316',
+      '#6366F1', '#14B8A6', '#84CC16', '#D946EF'
+    ];
+
+    return sortedPids.map((pid, pidIdx) => {
       const project = this.projects.find(p => p.id === pid);
       const projectName = project ? project.name : '알 수 없는 프로젝트';
       const threads = grouped[pid];
+      const pColor = PROJECT_COLORS[pidIdx % PROJECT_COLORS.length];
 
       const threadBars = threads.length > 0
         ? threads.map(thread => {
@@ -248,7 +256,8 @@ class TimelineView {
         : `<div class="text-xs text-gray-400 italic py-1.5 px-2">Thread 없음</div>`;
 
       return `
-        <div class="mb-2 drag-project" draggable="true" data-project-id="${pid}">
+        <div class="mb-2 drag-project rounded-lg" draggable="true" data-project-id="${pid}"
+             style="border-left: 3px solid ${pColor}; background: ${pColor}0A; padding-left: 6px;">
           <div class="flex items-center gap-1.5 mb-1 px-1 group/proj drag-project-handle">
             <div class="drag-grip text-gray-400 hover:text-gray-600 cursor-grab px-0.5 py-1" title="드래그하여 순서 변경">
               <svg class="w-3.5 h-3.5 pointer-events-none" viewBox="0 0 16 16" fill="currentColor">
@@ -257,8 +266,8 @@ class TimelineView {
                 <circle cx="5" cy="13" r="1.5"/><circle cx="11" cy="13" r="1.5"/>
               </svg>
             </div>
-            <div class="w-1 h-4 rounded-full bg-blue-500"></div>
-            <span class="text-xs font-bold text-gray-700">${Helpers.escapeHtml(projectName)}</span>
+            <div class="w-1.5 h-4 rounded-full" style="background: ${pColor};"></div>
+            <span class="text-xs font-bold" style="color: ${pColor};">${Helpers.escapeHtml(projectName)}</span>
             <span class="text-[10px] text-gray-400 font-medium">${threads.length}개</span>
             <button class="btn-edit-project text-gray-400 hover:text-blue-600 opacity-0 group-hover/proj:opacity-100 transition-opacity" data-project-id="${pid}" title="프로젝트 수정">
               <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>

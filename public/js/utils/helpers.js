@@ -133,7 +133,10 @@ const Helpers = {
    */
   async autoAssignColors(members, apiClient) {
     const DEFAULT = '#374151';
-    const PALETTE = ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#EC4899', '#06B6D4', '#F97316'];
+    const PALETTE = [
+      '#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#EC4899', '#06B6D4', '#F97316',
+      '#6366F1', '#14B8A6', '#84CC16', '#D946EF', '#64748B'
+    ];
     let idx = 0;
     const savePromises = [];
     members.forEach(m => {
