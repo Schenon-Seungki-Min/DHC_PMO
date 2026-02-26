@@ -82,18 +82,6 @@ app.post('/api/projects', async (req, res) => {
   }
 });
 
-app.put('/api/projects/:id', async (req, res) => {
-  try {
-    const updated = await dataService.updateProject(req.params.id, req.body);
-    if (!updated) {
-      return res.status(404).json({ error: 'Project not found' });
-    }
-    res.json(updated);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
 app.put('/api/projects/reorder', async (req, res) => {
   const { orderedIds } = req.body;
   if (!Array.isArray(orderedIds) || orderedIds.length === 0) {
@@ -102,6 +90,18 @@ app.put('/api/projects/reorder', async (req, res) => {
   try {
     await dataService.reorderProjects(orderedIds);
     res.json({ message: 'Projects reordered' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/projects/:id', async (req, res) => {
+  try {
+    const updated = await dataService.updateProject(req.params.id, req.body);
+    if (!updated) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+    res.json(updated);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -161,18 +161,6 @@ app.post('/api/threads', async (req, res) => {
   }
 });
 
-app.put('/api/threads/:id', async (req, res) => {
-  try {
-    const updated = await dataService.updateThread(req.params.id, req.body);
-    if (!updated) {
-      return res.status(404).json({ error: 'Thread not found' });
-    }
-    res.json(updated);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
 app.put('/api/threads/reorder', async (req, res) => {
   const { orderedIds } = req.body;
   if (!Array.isArray(orderedIds) || orderedIds.length === 0) {
@@ -181,6 +169,18 @@ app.put('/api/threads/reorder', async (req, res) => {
   try {
     await dataService.reorderThreads(orderedIds);
     res.json({ message: 'Threads reordered' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/threads/:id', async (req, res) => {
+  try {
+    const updated = await dataService.updateThread(req.params.id, req.body);
+    if (!updated) {
+      return res.status(404).json({ error: 'Thread not found' });
+    }
+    res.json(updated);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
