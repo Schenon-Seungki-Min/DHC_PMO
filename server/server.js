@@ -94,6 +94,19 @@ app.put('/api/projects/:id', async (req, res) => {
   }
 });
 
+app.put('/api/projects/reorder', async (req, res) => {
+  const { orderedIds } = req.body;
+  if (!Array.isArray(orderedIds) || orderedIds.length === 0) {
+    return res.status(400).json({ error: 'orderedIds array is required' });
+  }
+  try {
+    await dataService.reorderProjects(orderedIds);
+    res.json({ message: 'Projects reordered' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.delete('/api/projects/:id', async (req, res) => {
   try {
     const deleted = await dataService.deleteProject(req.params.id);
@@ -155,6 +168,19 @@ app.put('/api/threads/:id', async (req, res) => {
       return res.status(404).json({ error: 'Thread not found' });
     }
     res.json(updated);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/threads/reorder', async (req, res) => {
+  const { orderedIds } = req.body;
+  if (!Array.isArray(orderedIds) || orderedIds.length === 0) {
+    return res.status(400).json({ error: 'orderedIds array is required' });
+  }
+  try {
+    await dataService.reorderThreads(orderedIds);
+    res.json({ message: 'Threads reordered' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

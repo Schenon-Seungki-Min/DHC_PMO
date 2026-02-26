@@ -108,7 +108,7 @@ class ThreadBar {
     if (uniqueMembers.length === 1) {
       // 단일 담당자: 전체 채움
       const { member, role } = uniqueMembers[0];
-      const displayName = role === 'lead' ? member.name : member.name.charAt(0);
+      const displayName = role === 'lead' ? member.name : `${member.name} (S)`;
       return `
         <div class="member-segment" style="width: 100%; ${Helpers.getMemberBgStyle(member.color)}">
           ${Helpers.escapeHtml(displayName)}
@@ -119,7 +119,7 @@ class ThreadBar {
     // 다중 담당자: 수평 밴드 (위/아래로 쌓아서 동시 담당 표현)
     const bandHeight = 100 / uniqueMembers.length;
     const bands = uniqueMembers.map(({ member, role }) => {
-      const label = `${member.name.charAt(0)} ${role === 'lead' ? '(L)' : ''}`.trim();
+      const label = `${member.name.charAt(0)} ${role === 'lead' ? '(L)' : '(S)'}`.trim();
       return `
         <div class="member-band"
              style="height: ${bandHeight}%; ${Helpers.getMemberBgStyle(member.color)}"

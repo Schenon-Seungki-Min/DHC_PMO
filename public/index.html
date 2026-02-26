@@ -190,6 +190,27 @@
         .dot-intern-b { background: #8B5CF6; }
         .dot-kim { background: #10B981; }
 
+        /* Drag & Drop */
+        .drag-project-handle { cursor: grab; }
+        .drag-project-handle:active { cursor: grabbing; }
+        .drag-grip { line-height: 1; user-select: none; }
+
+        .drag-over-project {
+            outline: 2px dashed #3B82F6;
+            outline-offset: 2px;
+            border-radius: 8px;
+        }
+
+        .drag-over-thread > .thread-bar-container {
+            outline: 2px dashed #3B82F6;
+            outline-offset: 1px;
+            border-radius: 6px;
+        }
+
+        .drag-thread {
+            transition: opacity 0.15s;
+        }
+
         /* Mobile responsive */
         @media (max-width: 768px) {
             .thread-bar { height: 24px; }
