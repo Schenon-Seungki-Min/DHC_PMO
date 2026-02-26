@@ -249,7 +249,7 @@ class TimelineView {
         : `<div class="text-xs text-gray-400 italic py-1.5 px-2">Thread 없음</div>`;
 
       return `
-        <div class="mb-2 drag-project rounded-lg" draggable="true" data-project-id="${pid}"
+        <div class="mb-2 drag-project rounded-lg" data-project-id="${pid}"
              style="border-left: 3px solid ${pColor}; background: ${pColor}0A; padding-left: 6px;">
           <div class="flex items-center gap-1.5 mb-1 px-1 group/proj drag-project-handle">
             <div class="drag-grip text-gray-400 hover:text-gray-600 cursor-grab px-0.5 py-1" title="드래그하여 순서 변경">
@@ -424,25 +424,35 @@ class TimelineView {
     let dragId = null;
     let dragProjectId = null;
 
-    // --- 프로젝트 드래그 ---
-    document.querySelectorAll('.drag-project').forEach(el => {
-      // 프로젝트 헤더(handle)에서만 드래그 시작
-      const handle = el.querySelector('.drag-project-handle');
-      el.draggable = false; // 기본 비활성
+    const projectEls = document.querySelectorAll('.drag-project');
+    const threadEls = document.querySelectorAll('.drag-thread');
 
-      handle.addEventListener('mousedown', () => { el.draggable = true; });
+    // --- 프로젝트 드래그 ---
+    projectEls.forEach(el => {
+      const handle = el.querySelector('.drag-project-handle');
+      if (!handle) return;
+
+      // 핸들에서만 드래그 가능하도록 제어
+      el.removeAttribute('draggable');
+
+      handle.addEventListener('mousedown', (e) => {
+        // 수정/삭제 버튼 클릭 시 드래그 방지
+        if (e.target.closest('button')) return;
+        el.draggable = true;
+      });
+
       handle.addEventListener('mouseup', () => { el.draggable = false; });
 
       el.addEventListener('dragstart', (e) => {
-        // thread 드래그가 버블링으로 올라오는 경우 무시
-        if (e.target !== el) return;
+        if (e.target !== el) { e.preventDefault(); return; }
+        e.dataTransfer.setData('text/plain', el.dataset.projectId);
+        e.dataTransfer.effectAllowed = 'move';
         dragType = 'project';
         dragId = el.dataset.projectId;
         el.classList.add('opacity-40');
-        e.dataTransfer.effectAllowed = 'move';
       });
 
-      el.addEventListener('dragend', (e) => {
+      el.addEventListener('dragend', () => {
         el.classList.remove('opacity-40');
         el.draggable = false;
         document.querySelectorAll('.drag-over-project').forEach(d => d.classList.remove('drag-over-project'));
@@ -454,9 +464,12 @@ class TimelineView {
         if (dragType !== 'project') return;
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
-        // 시각적 드롭 위치 표시
         document.querySelectorAll('.drag-over-project').forEach(d => d.classList.remove('drag-over-project'));
         el.classList.add('drag-over-project');
+      });
+
+      el.addEventListener('dragleave', () => {
+        el.classList.remove('drag-over-project');
       });
 
       el.addEventListener('drop', async (e) => {
@@ -467,10 +480,9 @@ class TimelineView {
         const targetId = el.dataset.projectId;
         if (dragId === targetId) return;
 
-        // 순서 계산
         const container = document.getElementById('thread-bars');
-        const projectEls = [...container.querySelectorAll('.drag-project')];
-        const ids = projectEls.map(p => p.dataset.projectId);
+        const allProjectEls = [...container.querySelectorAll('.drag-project')];
+        const ids = allProjectEls.map(p => p.dataset.projectId);
 
         const fromIdx = ids.indexOf(dragId);
         const toIdx = ids.indexOf(targetId);
@@ -484,19 +496,21 @@ class TimelineView {
           await this.render(this.container, this.currentProject);
         } catch (error) {
           console.error('Project reorder failed:', error);
+          alert('프로젝트 순서 변경 실패: ' + error.message);
         }
       });
     });
 
     // --- Thread 드래그 (같은 프로젝트 내) ---
-    document.querySelectorAll('.drag-thread').forEach(el => {
+    threadEls.forEach(el => {
       el.addEventListener('dragstart', (e) => {
-        e.stopPropagation(); // 프로젝트 드래그로 전파 방지
+        e.stopPropagation();
+        e.dataTransfer.setData('text/plain', el.dataset.threadId);
+        e.dataTransfer.effectAllowed = 'move';
         dragType = 'thread';
         dragId = el.dataset.threadId;
         dragProjectId = el.dataset.projectId;
         el.classList.add('opacity-40');
-        e.dataTransfer.effectAllowed = 'move';
       });
 
       el.addEventListener('dragend', () => {
@@ -509,13 +523,16 @@ class TimelineView {
 
       el.addEventListener('dragover', (e) => {
         if (dragType !== 'thread') return;
-        // 같은 프로젝트 내에서만 허용
         if (el.dataset.projectId !== dragProjectId) return;
         e.preventDefault();
         e.stopPropagation();
         e.dataTransfer.dropEffect = 'move';
         document.querySelectorAll('.drag-over-thread').forEach(d => d.classList.remove('drag-over-thread'));
         el.classList.add('drag-over-thread');
+      });
+
+      el.addEventListener('dragleave', () => {
+        el.classList.remove('drag-over-thread');
       });
 
       el.addEventListener('drop', async (e) => {
@@ -528,10 +545,9 @@ class TimelineView {
         const targetId = el.dataset.threadId;
         if (dragId === targetId) return;
 
-        // 같은 프로젝트 내 Thread 순서 계산
         const threadContainer = el.closest('.drag-thread-container');
-        const threadEls = [...threadContainer.querySelectorAll('.drag-thread')];
-        const ids = threadEls.map(t => t.dataset.threadId);
+        const allThreadEls = [...threadContainer.querySelectorAll('.drag-thread')];
+        const ids = allThreadEls.map(t => t.dataset.threadId);
 
         const fromIdx = ids.indexOf(dragId);
         const toIdx = ids.indexOf(targetId);
@@ -545,6 +561,7 @@ class TimelineView {
           await this.render(this.container, this.currentProject);
         } catch (error) {
           console.error('Thread reorder failed:', error);
+          alert('Thread 순서 변경 실패: ' + error.message);
         }
       });
     });
