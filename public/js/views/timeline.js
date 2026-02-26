@@ -250,7 +250,13 @@ class TimelineView {
       return `
         <div class="mb-2 drag-project" draggable="true" data-project-id="${pid}">
           <div class="flex items-center gap-1.5 mb-1 px-1 group/proj drag-project-handle">
-            <div class="drag-grip text-gray-300 hover:text-gray-500 cursor-grab text-xs mr-0.5" title="드래그하여 순서 변경">⠿</div>
+            <div class="drag-grip text-gray-400 hover:text-gray-600 cursor-grab px-0.5 py-1" title="드래그하여 순서 변경">
+              <svg class="w-3.5 h-3.5 pointer-events-none" viewBox="0 0 16 16" fill="currentColor">
+                <circle cx="5" cy="3" r="1.5"/><circle cx="11" cy="3" r="1.5"/>
+                <circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/>
+                <circle cx="5" cy="13" r="1.5"/><circle cx="11" cy="13" r="1.5"/>
+              </svg>
+            </div>
             <div class="w-1 h-4 rounded-full bg-blue-500"></div>
             <span class="text-xs font-bold text-gray-700">${Helpers.escapeHtml(projectName)}</span>
             <span class="text-[10px] text-gray-400 font-medium">${threads.length}개</span>
